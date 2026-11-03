@@ -128,6 +128,17 @@ func getShellTask(p *process.Process) string {
 	return "idle"
 }
 
+func markDescendants(p *process.Process, seen map[int32]bool) {
+	children, err := p.Children()
+	if err != nil {
+		return
+	}
+	for _, c := range children {
+		seen[c.Pid] = true
+		markDescendants(c, seen)
+	}
+}
+
 func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 	procs, err := process.Processes()
 	if err != nil {
@@ -139,8 +150,14 @@ func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 		procMap[p.Pid] = p
 	}
 
+	seenDescendants := make(map[int32]bool)
 	var result []types.ProcessInfo
+
 	for _, p := range procs {
+		if seenDescendants[p.Pid] {
+			continue
+		}
+
 		if p.Pid <= 100 {
 			continue
 		}
@@ -194,9 +211,10 @@ func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 			displayName = fmt.Sprintf("terminal (%s)", task)
 		}
 
-		cmdline, _ := p.Cmdline()
+		// Mark all children of this application as seen so they are NOT listed as redundant separate apps
+		markDescendants(p, seenDescendants)
 
-		// Read cgroup path to identify current assignment
+		cmdline, _ := p.Cmdline()
 		assigned := s.detectAssignedInterface(int(p.Pid))
 
 		result = append(result, types.ProcessInfo{

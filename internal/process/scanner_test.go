@@ -2,28 +2,17 @@
 package process
 
 import (
-	"os"
 	"testing"
 )
 
-func TestScanCurrentProcess(t *testing.T) {
+func TestScanUserApplications(t *testing.T) {
 	scanner := NewScanner()
 	procs, err := scanner.ScanProcesses()
 	if err != nil {
 		t.Fatalf("failed to scan processes: %v", err)
 	}
-
-	currentPID := os.Getpid()
-	found := false
-	for _, p := range procs {
-		if p.PID == currentPID {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		t.Fatalf("expected current PID %d in scanned processes list", currentPID)
+	if len(procs) == 0 {
+		t.Fatal("expected at least one user process to be scanned")
 	}
 }
 
