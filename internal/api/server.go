@@ -27,7 +27,8 @@ func (s *Server) Start() error {
 		return err
 	}
 	s.listener = l
-	_ = os.Chmod(s.sockPath, 0660)
+	// Set socket permissions so unprivileged local users can connect to daemon
+	_ = os.Chmod(s.sockPath, 0666)
 
 	go s.serve()
 	return nil

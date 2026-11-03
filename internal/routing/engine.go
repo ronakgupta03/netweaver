@@ -78,6 +78,9 @@ func (e *Engine) ApplyNftables() error {
 	}
 	ruleset := GenerateNftablesRuleset(list)
 
+	// Idempotently purge existing table before reapplying to prevent duplicate rules
+	_ = exec.Command("nft", "delete", "table", "inet", "netweaver").Run()
+
 	cmd := exec.Command("nft", "-f", "-")
 	cmd.Stdin = strings.NewReader(ruleset)
 	if out, err := cmd.CombinedOutput(); err != nil {

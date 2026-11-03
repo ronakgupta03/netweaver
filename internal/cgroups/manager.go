@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 var ifaceRegex = regexp.MustCompile(`^[a-zA-Z0-9_.-]{1,16}$`)
@@ -70,5 +71,29 @@ func (m *Manager) ResetPID(pid int) error {
 
 func (m *Manager) Teardown() error {
 	baseDir := filepath.Join(m.cgroupRoot, "netweaver")
+	entries, err := os.ReadDir(baseDir)
+	if err != nil {
+		return nil
+	}
+
+	rootProcs := filepath.Join(m.cgroupRoot, "cgroup.procs")
+	for _, entry := range entries {
+		if entry.IsDir() {
+			procsPath := filepath.Join(baseDir, entry.Name(), "cgroup.procs")
+			if data, err := os.ReadFile(procsPath); err == nil {
+				for _, line := range strings.Split(string(data), "\n") {
+					pid := strings.TrimSpace(line)
+					if pid != "" {
+						f, openErr := os.OpenFile(rootProcs, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+						if openErr == nil {
+							_, _ = f.WriteString(pid + "\n")
+							_ = f.Close()
+						}
+					}
+				}
+			}
+			_ = os.Remove(filepath.Join(baseDir, entry.Name()))
+		}
+	}
 	return os.RemoveAll(baseDir)
 }

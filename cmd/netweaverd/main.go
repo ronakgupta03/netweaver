@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -82,6 +83,21 @@ func main() {
 		}
 	}
 
+	// Start background watcher for interface hotplug and carrier status
+	ctx, cancelMonitor := context.WithCancel(context.Background())
+	defer cancelMonitor()
+
+	notifyChan := make(chan []types.InterfaceInfo, 10)
+	go monitor.StartWatch(ctx, notifyChan)
+	go func() {
+		for updatedIfaces := range notifyChan {
+			for _, iface := range updatedIfaces {
+				_ = cgMgr.EnsureInterfaceCgroup(iface.Name)
+				_ = engine.SetupInterfaceRoute(iface)
+			}
+		}
+	}()
+
 	daemon := &DaemonService{
 		cgMgr:   cgMgr,
 		engine:  engine,
@@ -101,6 +117,7 @@ func main() {
 	<-sigChan
 
 	log.Println("[netweaverd] Shutting down, cleaning up rules...")
+	cancelMonitor()
 	srv.Stop()
 	_ = engine.Teardown()
 	_ = cgMgr.Teardown()

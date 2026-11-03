@@ -59,7 +59,7 @@ func main() {
 			os.Exit(1)
 		}
 		pid, err := strconv.Atoi(os.Args[2])
-		if err != nil {
+		if err != nil || pid <= 0 {
 			fmt.Fprintf(os.Stderr, "Invalid PID: %s\n", os.Args[2])
 			os.Exit(1)
 		}
@@ -74,7 +74,11 @@ func main() {
 			fmt.Println("Usage: netweaver reset <PID>")
 			os.Exit(1)
 		}
-		pid, _ := strconv.Atoi(os.Args[2])
+		pid, err := strconv.Atoi(os.Args[2])
+		if err != nil || pid <= 0 {
+			fmt.Fprintf(os.Stderr, "Invalid PID: %s\n", os.Args[2])
+			os.Exit(1)
+		}
 		if err := client.ResetRoute(pid); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)

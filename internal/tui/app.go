@@ -28,8 +28,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			if len(m.processes) > 0 && len(m.interfaces) > 0 {
 				proc := m.processes[m.cursor]
-				// Cycle to next available interface
-				targetIface := m.interfaces[0].Name
+				currIdx := -1
+				for idx, iface := range m.interfaces {
+					if iface.Name == proc.AssignedInterface {
+						currIdx = idx
+						break
+					}
+				}
+				nextIdx := (currIdx + 1) % len(m.interfaces)
+				targetIface := m.interfaces[nextIdx].Name
 				_ = m.client.AssignRoute(proc.PID, targetIface)
 				return m, m.fetchDataCmd()
 			}
@@ -43,6 +50,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case dataLoadedMsg:
 		m.processes = msg.processes
 		m.interfaces = msg.interfaces
+		if m.cursor >= len(m.processes) && len(m.processes) > 0 {
+			m.cursor = len(m.processes) - 1
+		}
 	case TickMsg:
 		return m, tea.Batch(m.fetchDataCmd(), tickCmd())
 	}

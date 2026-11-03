@@ -23,18 +23,19 @@ func NewMonitor() *Monitor {
 	}
 }
 
-func parseDefaultRoute(output string) (gateway string, dev string, err error) {
+func parseDefaultRoutes(output string) map[string]string {
+	gateways := make(map[string]string)
 	scanner := bufio.NewScanner(strings.NewReader(output))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if strings.HasPrefix(line, "default via ") {
 			fields := strings.Fields(line)
 			if len(fields) >= 5 {
-				return fields[2], fields[4], nil
+				gateways[fields[4]] = fields[2]
 			}
 		}
 	}
-	return "", "", nil
+	return gateways
 }
 
 func (m *Monitor) DiscoverInterfaces() ([]types.InterfaceInfo, error) {
@@ -47,15 +48,15 @@ func (m *Monitor) DiscoverInterfaces() ([]types.InterfaceInfo, error) {
 	}
 
 	routeOut, _ := exec.Command("ip", "route", "show").Output()
-	defGW, defDev, _ := parseDefaultRoute(string(routeOut))
+	gateways := parseDefaultRoutes(string(routeOut))
 
 	var result []types.InterfaceInfo
 	for _, iface := range netIfaces {
-		// Ignore loopback, down links, and docker virtual bridges
+		// Ignore loopback, down links, and docker bridges
 		if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
 			continue
 		}
-		if strings.HasPrefix(iface.Name, "br-") || strings.HasPrefix(iface.Name, "veth") {
+		if strings.HasPrefix(iface.Name, "br-") || strings.HasPrefix(iface.Name, "docker") {
 			continue
 		}
 
@@ -70,10 +71,7 @@ func (m *Monitor) DiscoverInterfaces() ([]types.InterfaceInfo, error) {
 			}
 		}
 
-		gw := ""
-		if iface.Name == defDev {
-			gw = defGW
-		}
+		gw := gateways[iface.Name]
 
 		info := types.InterfaceInfo{
 			Name:    iface.Name,
