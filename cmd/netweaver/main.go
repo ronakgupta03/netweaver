@@ -31,14 +31,14 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("%-8s %-25s %-15s\n", "PID", "NAME", "INTERFACE")
-		fmt.Println("--------------------------------------------------")
+		fmt.Printf("%-8s %-32s %-15s\n", "PID", "APPLICATION", "INTERFACE")
+		fmt.Println("----------------------------------------------------------")
 		for _, p := range procs {
 			iface := p.AssignedInterface
 			if iface == "" {
 				iface = "(default)"
 			}
-			fmt.Printf("%-8d %-25s %-15s\n", p.PID, p.Name, iface)
+			fmt.Printf("%-8d %-32s %-15s\n", p.PID, p.Name, iface)
 		}
 
 	case "interfaces":

@@ -28,6 +28,7 @@ var ignoredServices = map[string]bool{
 	"wl-paste":            true,
 	"gvfsd":               true,
 	"gvfsd-fuse":          true,
+	"gvfsd-metadata":      true,
 	"dconf-service":       true,
 	"xsettingsd":          true,
 	"at-spi-bus-launcher": true,
@@ -38,6 +39,14 @@ var ignoredServices = map[string]bool{
 	"awww-daemon":         true,
 	"playerctl":           true,
 	"obexd":               true,
+	"fusermount3":         true,
+	"wenativehost":        true,
+	"node-MainThread":     true,
+	"gitstatusd-linux-x86_64": true,
+	"alacritty":           true,
+	"kitty":               true,
+	"foot":                true,
+	"wezterm-gui":         true,
 	"crashhelper":         true,
 	"forkserver":          true,
 	"Socket Process":      true,
@@ -49,6 +58,9 @@ var ignoredServices = map[string]bool{
 	"Isolated Web Co":     true,
 	"Web Content":         true,
 	"chrome_crashpad":     true,
+	"chrome_crashpad_handler": true,
+	"cat":                 true,
+	"sleep":               true,
 }
 
 type Scanner struct{}
@@ -61,16 +73,70 @@ func isIgnored(name string) bool {
 	if ignoredServices[name] {
 		return true
 	}
-	if strings.HasPrefix(name, "xdg-") || strings.HasPrefix(name, "gvfs-") {
+	if strings.HasPrefix(name, "xdg-") || strings.HasPrefix(name, "gvfs") {
 		return true
 	}
 	return false
+}
+
+func getSessionID(pid int32) int32 {
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
+	if err != nil {
+		return 0
+	}
+	s := string(data)
+	closeIdx := strings.LastIndex(s, ")")
+	if closeIdx == -1 || closeIdx+2 >= len(s) {
+		return 0
+	}
+	fields := strings.Fields(s[closeIdx+2:])
+	// fields[0]: state, fields[1]: ppid, fields[2]: pgrp, fields[3]: session
+	if len(fields) > 3 {
+		sid, _ := strconv.Atoi(fields[3])
+		return int32(sid)
+	}
+	return 0
+}
+
+func getShellTask(p *process.Process) string {
+	children, err := p.Children()
+	if err != nil || len(children) == 0 {
+		return "idle"
+	}
+	for _, child := range children {
+		cName, _ := child.Name()
+		if cName == "" || strings.HasPrefix(cName, "gitstatusd") {
+			continue
+		}
+		cmdline, _ := child.Cmdline()
+		if cmdline != "" {
+			fields := strings.Fields(cmdline)
+			if len(fields) > 0 {
+				prog := filepath.Base(fields[0])
+				if len(fields) > 1 {
+					arg := fields[1]
+					if len(arg) > 20 {
+						arg = arg[:17] + "..."
+					}
+					return fmt.Sprintf("%s %s", prog, arg)
+				}
+				return prog
+			}
+		}
+		return cName
+	}
+	return "idle"
 }
 
 func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 	procs, err := process.Processes()
 	if err != nil {
 		return nil, err
+	}
+
+	procMap := make(map[int32]*process.Process, len(procs))
+	for _, p := range procs {
+		procMap[p.Pid] = p
 	}
 
 	var result []types.ProcessInfo
@@ -105,6 +171,29 @@ func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 			continue
 		}
 
+		parent := procMap[ppid]
+		// Collapse browser/multi-process trees: if parent has same name, skip child
+		if parent != nil {
+			parentName, _ := parent.Name()
+			if parentName == name {
+				continue
+			}
+			if (name == "zsh" || name == "bash") && (parentName == "zsh" || parentName == "bash") {
+				continue
+			}
+		}
+
+		displayName := name
+		if name == "zsh" || name == "bash" || name == "fish" || name == "sh" {
+			sid := getSessionID(p.Pid)
+			// Only show the interactive session leader shell
+			if p.Pid != sid {
+				continue
+			}
+			task := getShellTask(p)
+			displayName = fmt.Sprintf("terminal (%s)", task)
+		}
+
 		cmdline, _ := p.Cmdline()
 
 		// Read cgroup path to identify current assignment
@@ -112,7 +201,7 @@ func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 
 		result = append(result, types.ProcessInfo{
 			PID:               int(p.Pid),
-			Name:              name,
+			Name:              displayName,
 			Cmdline:           cmdline,
 			UID:               uid,
 			AssignedInterface: assigned,
@@ -127,7 +216,6 @@ func (s *Scanner) detectAssignedInterface(pid int) string {
 	if err != nil {
 		return ""
 	}
-	// e.g., "0::/netweaver/wlan0"
 	content := string(data)
 	idx := strings.Index(content, "/netweaver/")
 	if idx == -1 {

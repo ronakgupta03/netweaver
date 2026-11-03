@@ -45,8 +45,8 @@ func (m Model) View() string {
 
 	// Process Table Header
 	countStr := fmt.Sprintf("(%d applications)", len(m.processes))
-	b.WriteString(fmt.Sprintf("%-3s %-8s %-25s %-15s %s\n", "   ", "PID", "APPLICATION", "INTERFACE", countStr))
-	b.WriteString("------------------------------------------------------------\n")
+	b.WriteString(fmt.Sprintf("%-3s %-8s %-32s %-15s %s\n", "   ", "PID", "APPLICATION", "INTERFACE", countStr))
+	b.WriteString("-------------------------------------------------------------------\n")
 
 	if len(m.processes) == 0 {
 		b.WriteString("   No user applications detected.\n")
@@ -76,7 +76,7 @@ func (m Model) View() string {
 				iface = "(default)"
 			}
 
-			line := fmt.Sprintf("%s %-8d %-25s %-15s", cursor, p.PID, p.Name, iface)
+			line := fmt.Sprintf("%s %-8d %-32s %-15s", cursor, p.PID, p.Name, iface)
 			b.WriteString(style.Render(line) + "\n")
 		}
 
