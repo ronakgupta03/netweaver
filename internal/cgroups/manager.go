@@ -37,6 +37,8 @@ func (m *Manager) InitHierarchy() error {
 	if err := os.MkdirAll(defaultDir, 0755); err != nil {
 		return fmt.Errorf("failed creating cgroup directory %s: %w", defaultDir, err)
 	}
+	// Migrate any existing processes trapped in netweaver back to root cgroup
+	m.MigrateAllToRoot()
 	return nil
 }
 
@@ -49,6 +51,9 @@ func (m *Manager) EnsureInterfaceCgroup(iface string) error {
 }
 
 func (m *Manager) AssignPID(iface string, pid int) error {
+	if pid <= 100 {
+		return fmt.Errorf("cannot assign system process PID %d", pid)
+	}
 	path, err := m.InterfaceCgroupPath(iface)
 	if err != nil {
 		return err
@@ -69,11 +74,11 @@ func (m *Manager) ResetPID(pid int) error {
 	return os.WriteFile(defaultProcs, []byte(strconv.Itoa(pid)+"\n"), 0644)
 }
 
-func (m *Manager) Teardown() error {
+func (m *Manager) MigrateAllToRoot() {
 	baseDir := filepath.Join(m.cgroupRoot, "netweaver")
 	entries, err := os.ReadDir(baseDir)
 	if err != nil {
-		return nil
+		return
 	}
 
 	rootProcs := filepath.Join(m.cgroupRoot, "cgroup.procs")
@@ -92,7 +97,19 @@ func (m *Manager) Teardown() error {
 					}
 				}
 			}
-			_ = os.Remove(filepath.Join(baseDir, entry.Name()))
+		}
+	}
+}
+
+func (m *Manager) Teardown() error {
+	m.MigrateAllToRoot()
+	baseDir := filepath.Join(m.cgroupRoot, "netweaver")
+	entries, err := os.ReadDir(baseDir)
+	if err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				_ = os.Remove(filepath.Join(baseDir, entry.Name()))
+			}
 		}
 	}
 	return os.RemoveAll(baseDir)

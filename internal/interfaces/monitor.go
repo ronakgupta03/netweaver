@@ -5,7 +5,9 @@ import (
 	"bufio"
 	"context"
 	"net"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -38,6 +40,21 @@ func parseDefaultRoutes(output string) map[string]string {
 	return gateways
 }
 
+func isCarrierUp(name string) bool {
+	// Check physical carrier state
+	data, err := os.ReadFile(filepath.Join("/sys/class/net", name, "carrier"))
+	if err == nil {
+		return strings.TrimSpace(string(data)) == "1"
+	}
+	// Fallback to operational state for virtual devices
+	operData, err := os.ReadFile(filepath.Join("/sys/class/net", name, "operstate"))
+	if err == nil {
+		state := strings.TrimSpace(string(operData))
+		return state != "down"
+	}
+	return true
+}
+
 func (m *Monitor) DiscoverInterfaces() ([]types.InterfaceInfo, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -60,6 +77,11 @@ func (m *Monitor) DiscoverInterfaces() ([]types.InterfaceInfo, error) {
 			continue
 		}
 
+		// Verify physical carrier is active (skips unplugged ethernet cables)
+		if !isCarrierUp(iface.Name) {
+			continue
+		}
+
 		addrs, _ := iface.Addrs()
 		var ipAddr string
 		for _, addr := range addrs {
@@ -69,6 +91,11 @@ func (m *Monitor) DiscoverInterfaces() ([]types.InterfaceInfo, error) {
 					break
 				}
 			}
+		}
+
+		// Only active interfaces with a valid assigned IP can route traffic
+		if ipAddr == "" {
+			continue
 		}
 
 		gw := gateways[iface.Name]

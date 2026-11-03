@@ -2,6 +2,7 @@
 package process
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -25,6 +26,11 @@ func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 
 	var result []types.ProcessInfo
 	for _, p := range procs {
+		// Ignore low system PIDs
+		if p.Pid <= 100 {
+			continue
+		}
+
 		name, err := p.Name()
 		if err != nil || name == "" {
 			continue
@@ -39,6 +45,11 @@ func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 		var uid uint32
 		if len(uids) > 0 {
 			uid = uint32(uids[0])
+		}
+
+		// Only list user processes (UID >= 1000) or user application processes
+		if uid < 1000 {
+			continue
 		}
 
 		cmdline, _ := p.Cmdline()
@@ -77,6 +88,9 @@ func (s *Scanner) detectAssignedInterface(pid int) string {
 }
 
 func (s *Scanner) GetProcessTree(rootPID int) ([]int, error) {
+	if rootPID <= 100 {
+		return nil, fmt.Errorf("refusing to manipulate system process tree for PID %d", rootPID)
+	}
 	pids := []int{rootPID}
 	p, err := process.NewProcess(int32(rootPID))
 	if err != nil {
