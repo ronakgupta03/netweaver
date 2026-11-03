@@ -4,6 +4,7 @@ package interfaces
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"os/exec"
@@ -40,13 +41,46 @@ func parseDefaultRoutes(output string) map[string]string {
 	return gateways
 }
 
+func parseDefaultRoutes6(output string) map[string]string {
+	gateways := make(map[string]string)
+	scanner := bufio.NewScanner(strings.NewReader(output))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "default via ") {
+			fields := strings.Fields(line)
+			if len(fields) >= 5 {
+				gateways[fields[4]] = fields[2]
+			}
+		}
+	}
+	return gateways
+}
+
+func getPreferredMetric(name string) int {
+	if strings.HasPrefix(name, "eno") || strings.HasPrefix(name, "eth") {
+		return 50 // Highest priority: physical Ethernet
+	}
+	if strings.HasPrefix(name, "wlan") || strings.HasPrefix(name, "wl") {
+		return 100 // Medium priority: Wi-Fi (default when Ethernet is not plugged in)
+	}
+	if strings.Contains(name, "u") || strings.HasPrefix(name, "usb") || strings.HasPrefix(name, "enp") {
+		return 700 // Lowest priority: USB mobile tethering / fallback
+	}
+	return 200
+}
+
+func EnforceDefaultPriorities(gateways map[string]string) {
+	for dev, gw := range gateways {
+		metric := getPreferredMetric(dev)
+		_ = exec.Command("ip", "route", "replace", "default", "via", gw, "dev", dev, "metric", fmt.Sprintf("%d", metric)).Run()
+	}
+}
+
 func isCarrierUp(name string) bool {
-	// Check physical carrier state
 	data, err := os.ReadFile(filepath.Join("/sys/class/net", name, "carrier"))
 	if err == nil {
 		return strings.TrimSpace(string(data)) == "1"
 	}
-	// Fallback to operational state for virtual devices
 	operData, err := os.ReadFile(filepath.Join("/sys/class/net", name, "operstate"))
 	if err == nil {
 		state := strings.TrimSpace(string(operData))
@@ -67,9 +101,14 @@ func (m *Monitor) DiscoverInterfaces() ([]types.InterfaceInfo, error) {
 	routeOut, _ := exec.Command("ip", "route", "show").Output()
 	gateways := parseDefaultRoutes(string(routeOut))
 
+	route6Out, _ := exec.Command("ip", "-6", "route", "show", "default").Output()
+	gateways6 := parseDefaultRoutes6(string(route6Out))
+
+	// Enforce default route priority: Ethernet (50) > Wi-Fi (100) > USB tethering (700)
+	EnforceDefaultPriorities(gateways)
+
 	var result []types.InterfaceInfo
 	for _, iface := range netIfaces {
-		// Ignore loopback, down links, and docker bridges
 		if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
 			continue
 		}
@@ -77,7 +116,6 @@ func (m *Monitor) DiscoverInterfaces() ([]types.InterfaceInfo, error) {
 			continue
 		}
 
-		// Verify physical carrier is active (skips unplugged ethernet cables)
 		if !isCarrierUp(iface.Name) {
 			continue
 		}
@@ -93,20 +131,21 @@ func (m *Monitor) DiscoverInterfaces() ([]types.InterfaceInfo, error) {
 			}
 		}
 
-		// Only active interfaces with a valid assigned IP can route traffic
 		if ipAddr == "" {
 			continue
 		}
 
 		gw := gateways[iface.Name]
+		gw6 := gateways6[iface.Name]
 
 		info := types.InterfaceInfo{
-			Name:    iface.Name,
-			Index:   iface.Index,
-			IP:      ipAddr,
-			Gateway: gw,
-			TableID: 0x100 + iface.Index,
-			Up:      true,
+			Name:     iface.Name,
+			Index:    iface.Index,
+			IP:       ipAddr,
+			Gateway:  gw,
+			Gateway6: gw6,
+			TableID:  0x100 + iface.Index,
+			Up:       true,
 		}
 		m.ifaces[iface.Name] = info
 		result = append(result, info)

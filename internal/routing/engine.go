@@ -53,20 +53,25 @@ func NewEngine() *Engine {
 func (e *Engine) SetupInterfaceRoute(info types.InterfaceInfo) error {
 	e.ifaces[info.Name] = info
 
-	// 1. ip route replace default via <GW> dev <IFACE> table <TableID>
+	// 1. IPv4 Route in table
 	if info.Gateway != "" {
-		cmd := exec.Command("ip", "route", "replace", "default", "via", info.Gateway, "dev", info.Name, "table", fmt.Sprintf("%d", info.TableID))
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("ip route failed: %s: %w", string(out), err)
-		}
+		_ = exec.Command("ip", "route", "replace", "default", "via", info.Gateway, "dev", info.Name, "table", fmt.Sprintf("%d", info.TableID)).Run()
 	}
 
-	// 2. ip rule add fwmark <TableID> lookup <TableID> priority 1000
-	_ = exec.Command("ip", "rule", "del", "fwmark", fmt.Sprintf("0x%x", info.TableID), "table", fmt.Sprintf("%d", info.TableID)).Run()
-	cmd := exec.Command("ip", "rule", "add", "fwmark", fmt.Sprintf("0x%x", info.TableID), "table", fmt.Sprintf("%d", info.TableID), "priority", "1000")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("ip rule failed: %s: %w", string(out), err)
+	// 2. IPv6 Route in table (or unreachable to prevent leaking onto other interfaces)
+	if info.Gateway6 != "" {
+		_ = exec.Command("ip", "-6", "route", "replace", "default", "via", info.Gateway6, "dev", info.Name, "table", fmt.Sprintf("%d", info.TableID)).Run()
+	} else {
+		_ = exec.Command("ip", "-6", "route", "replace", "unreachable", "default", "table", fmt.Sprintf("%d", info.TableID)).Run()
 	}
+
+	// 3. IPv4 FIB rule
+	_ = exec.Command("ip", "rule", "del", "fwmark", fmt.Sprintf("0x%x", info.TableID), "table", fmt.Sprintf("%d", info.TableID)).Run()
+	_ = exec.Command("ip", "rule", "add", "fwmark", fmt.Sprintf("0x%x", info.TableID), "table", fmt.Sprintf("%d", info.TableID), "priority", "1000").Run()
+
+	// 4. IPv6 FIB rule
+	_ = exec.Command("ip", "-6", "rule", "del", "fwmark", fmt.Sprintf("0x%x", info.TableID), "table", fmt.Sprintf("%d", info.TableID)).Run()
+	_ = exec.Command("ip", "-6", "rule", "add", "fwmark", fmt.Sprintf("0x%x", info.TableID), "table", fmt.Sprintf("%d", info.TableID), "priority", "1000").Run()
 
 	return e.ApplyNftables()
 }
@@ -90,13 +95,13 @@ func (e *Engine) ApplyNftables() error {
 }
 
 func (e *Engine) Teardown() error {
-	// Flush nftables table
 	_ = exec.Command("nft", "delete", "table", "inet", "netweaver").Run()
 
-	// Flush ip rules and tables
 	for _, iface := range e.ifaces {
 		_ = exec.Command("ip", "rule", "del", "fwmark", fmt.Sprintf("0x%x", iface.TableID), "table", fmt.Sprintf("%d", iface.TableID)).Run()
+		_ = exec.Command("ip", "-6", "rule", "del", "fwmark", fmt.Sprintf("0x%x", iface.TableID), "table", fmt.Sprintf("%d", iface.TableID)).Run()
 		_ = exec.Command("ip", "route", "flush", "table", fmt.Sprintf("%d", iface.TableID)).Run()
+		_ = exec.Command("ip", "-6", "route", "flush", "table", fmt.Sprintf("%d", iface.TableID)).Run()
 	}
 	return nil
 }
