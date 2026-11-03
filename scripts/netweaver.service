@@ -1,0 +1,12 @@
+[Unit]
+Description=NetWeaver Per-Application Network Routing Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/netweaverd
+Restart=on-failure
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
