@@ -1,0 +1,8 @@
+# Binaries
+bin/
+
+# Unix domain sockets
+*.sock
+
+# Scratch workspaces
+.superpowers/
