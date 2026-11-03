@@ -34,32 +34,54 @@ func (m Model) View() string {
 
 	// Active interfaces summary
 	b.WriteString("Active Interfaces: ")
-	for _, iface := range m.interfaces {
-		b.WriteString(fmt.Sprintf("[%s: %s (table %d)] ", iface.Name, iface.IP, iface.TableID))
+	if len(m.interfaces) == 0 {
+		b.WriteString("[None connected]")
+	} else {
+		for _, iface := range m.interfaces {
+			b.WriteString(fmt.Sprintf("[%s: %s (table %d)] ", iface.Name, iface.IP, iface.TableID))
+		}
 	}
 	b.WriteString("\n\n")
 
-	// Process Table
-	b.WriteString(fmt.Sprintf("%-3s %-8s %-25s %-15s\n", "   ", "PID", "APPLICATION", "INTERFACE"))
+	// Process Table Header
+	countStr := fmt.Sprintf("(%d applications)", len(m.processes))
+	b.WriteString(fmt.Sprintf("%-3s %-8s %-25s %-15s %s\n", "   ", "PID", "APPLICATION", "INTERFACE", countStr))
 	b.WriteString("------------------------------------------------------------\n")
 
-	for i, p := range m.processes {
-		cursor := "  "
-		style := lipgloss.NewStyle()
-		if m.cursor == i {
-			cursor = " >"
-			style = selectedStyle
+	if len(m.processes) == 0 {
+		b.WriteString("   No user applications detected.\n")
+	} else {
+		// Windowed scrolling: keep cursor visible within a 15-item viewport
+		windowSize := 15
+		startIdx := 0
+		if m.cursor >= windowSize {
+			startIdx = m.cursor - windowSize + 1
+		}
+		endIdx := startIdx + windowSize
+		if endIdx > len(m.processes) {
+			endIdx = len(m.processes)
 		}
 
-		iface := p.AssignedInterface
-		if iface == "" {
-			iface = "(default)"
+		for i := startIdx; i < endIdx; i++ {
+			p := m.processes[i]
+			cursor := "  "
+			style := lipgloss.NewStyle()
+			if m.cursor == i {
+				cursor = " >"
+				style = selectedStyle
+			}
+
+			iface := p.AssignedInterface
+			if iface == "" {
+				iface = "(default)"
+			}
+
+			line := fmt.Sprintf("%s %-8d %-25s %-15s", cursor, p.PID, p.Name, iface)
+			b.WriteString(style.Render(line) + "\n")
 		}
 
-		line := fmt.Sprintf("%s %-8d %-25s %-15s", cursor, p.PID, p.Name, iface)
-		b.WriteString(style.Render(line) + "\n")
-		if i >= 15 { // display top 15 in view
-			break
+		if len(m.processes) > windowSize {
+			b.WriteString(fmt.Sprintf("\n   [Viewing %d-%d of %d - scroll with ↑/↓]\n", startIdx+1, endIdx, len(m.processes)))
 		}
 	}
 

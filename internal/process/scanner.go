@@ -12,10 +12,59 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 )
 
+var ignoredServices = map[string]bool{
+	"systemd":             true,
+	"(sd-pam)":            true,
+	"dbus-broker":         true,
+	"dbus-broker-launch":  true,
+	"pipewire":            true,
+	"wireplumber":         true,
+	"pipewire-pulse":      true,
+	"start-hyprland":      true,
+	"Hyprland":            true,
+	"Xwayland":            true,
+	"waybar":              true,
+	"hypridle":            true,
+	"wl-paste":            true,
+	"gvfsd":               true,
+	"gvfsd-fuse":          true,
+	"dconf-service":       true,
+	"xsettingsd":          true,
+	"at-spi-bus-launcher": true,
+	"at-spi2-registryd":   true,
+	"hyprpolkitagent":     true,
+	"quickshell":          true,
+	"cava":                true,
+	"awww-daemon":         true,
+	"playerctl":           true,
+	"obexd":               true,
+	"crashhelper":         true,
+	"forkserver":          true,
+	"Socket Process":      true,
+	"WebExtensions":       true,
+	"RDD Process":         true,
+	"Privileged Cont":     true,
+	"Utility Process":     true,
+	"Isolated Servic":     true,
+	"Isolated Web Co":     true,
+	"Web Content":         true,
+	"chrome_crashpad":     true,
+}
+
 type Scanner struct{}
 
 func NewScanner() *Scanner {
 	return &Scanner{}
+}
+
+func isIgnored(name string) bool {
+	if ignoredServices[name] {
+		return true
+	}
+	if strings.HasPrefix(name, "xdg-") || strings.HasPrefix(name, "gvfs-") {
+		return true
+	}
+	return false
 }
 
 func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
@@ -26,7 +75,6 @@ func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 
 	var result []types.ProcessInfo
 	for _, p := range procs {
-		// Ignore low system PIDs
 		if p.Pid <= 100 {
 			continue
 		}
@@ -47,8 +95,13 @@ func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 			uid = uint32(uids[0])
 		}
 
-		// Only list user processes (UID >= 1000) or user application processes
+		// Only list user processes (UID >= 1000)
 		if uid < 1000 {
+			continue
+		}
+
+		// Filter out internal background daemons and browser child sandboxes
+		if isIgnored(name) {
 			continue
 		}
 
