@@ -10,7 +10,14 @@ import (
 	"netweaver/internal/tui"
 )
 
-const defaultSock = "/run/netweaver/netweaver.sock"
+// defaultSock resolves the daemon socket path; NETWEAVER_SOCK overrides it for
+// unprivileged test harnesses and alternate daemon instances.
+var defaultSock = func() string {
+	if v := os.Getenv("NETWEAVER_SOCK"); v != "" {
+		return v
+	}
+	return "/run/netweaver/netweaver.sock"
+}()
 
 func main() {
 	if len(os.Args) < 2 {

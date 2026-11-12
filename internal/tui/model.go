@@ -2,14 +2,16 @@
 package tui
 
 import (
-	"time"
 	"netweaver/internal/api"
 	"netweaver/internal/types"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type TickMsg time.Time
+
+const historyLen = 16
 
 type Model struct {
 	client     *api.Client
@@ -21,11 +23,14 @@ type Model struct {
 	err        error
 	width      int
 	height     int
+	// history maps PID -> recent total throughput samples for sparklines.
+	history map[int][]float64
 }
 
 func InitialModel(sockPath string) Model {
 	return Model{
-		client: api.NewClient(sockPath),
+		client:  api.NewClient(sockPath),
+		history: make(map[int][]float64),
 	}
 }
 

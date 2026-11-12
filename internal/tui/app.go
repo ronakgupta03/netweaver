@@ -50,6 +50,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case dataLoadedMsg:
 		m.processes = msg.processes
 		m.interfaces = msg.interfaces
+		live := make(map[int]bool, len(msg.processes))
+		for _, p := range msg.processes {
+			live[p.PID] = true
+			hist := m.history[p.PID]
+			hist = append(hist, p.RxRate+p.TxRate)
+			if len(hist) > historyLen {
+				hist = hist[len(hist)-historyLen:]
+			}
+			m.history[p.PID] = hist
+		}
+		for pid := range m.history {
+			if !live[pid] {
+				delete(m.history, pid)
+			}
+		}
 		if m.cursor >= len(m.processes) && len(m.processes) > 0 {
 			m.cursor = len(m.processes) - 1
 		}

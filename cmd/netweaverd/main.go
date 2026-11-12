@@ -13,22 +13,50 @@ import (
 	"netweaver/internal/interfaces"
 	"netweaver/internal/process"
 	"netweaver/internal/routing"
+	"netweaver/internal/telemetry"
 	"netweaver/internal/types"
 )
 
 type DaemonService struct {
-	cgMgr   *cgroups.Manager
-	engine  *routing.Engine
-	monitor *interfaces.Monitor
-	scanner *process.Scanner
+	cgMgr     *cgroups.Manager
+	engine    *routing.Engine
+	monitor   *interfaces.Monitor
+	scanner   *process.Scanner
+	telemetry *telemetry.Engine
 }
 
 func (d *DaemonService) ListInterfaces() ([]types.InterfaceInfo, error) {
-	return d.monitor.DiscoverInterfaces()
+	ifaces, err := d.monitor.DiscoverInterfaces()
+	if err != nil {
+		return nil, err
+	}
+	for i := range ifaces {
+		usage, rate := d.telemetry.InterfaceUsage(ifaces[i].Name)
+		ifaces[i].RxBytes = usage.Rx
+		ifaces[i].TxBytes = usage.Tx
+		ifaces[i].RxRate = rate.Rx
+		ifaces[i].TxRate = rate.Tx
+	}
+	return ifaces, nil
 }
 
 func (d *DaemonService) ListProcesses() ([]types.ProcessInfo, error) {
-	return d.scanner.ScanProcesses()
+	procs, err := d.scanner.ScanProcesses()
+	if err != nil {
+		return nil, err
+	}
+	for i := range procs {
+		pids, treeErr := d.scanner.GetProcessTree(procs[i].PID)
+		if treeErr != nil || len(pids) == 0 {
+			pids = []int{procs[i].PID}
+		}
+		usage, rate := d.telemetry.SubtreeUsage(pids)
+		procs[i].RxBytes = usage.Rx
+		procs[i].TxBytes = usage.Tx
+		procs[i].RxRate = rate.Rx
+		procs[i].TxRate = rate.Tx
+	}
+	return procs, nil
 }
 
 func (d *DaemonService) AssignRoute(pid int, iface string) error {
@@ -72,6 +100,7 @@ func main() {
 	engine := routing.NewEngine()
 	monitor := interfaces.NewMonitor()
 	scanner := process.NewScanner()
+	telemetryEngine := telemetry.NewEngine()
 
 	// Initial interface discovery & routing setup
 	ifaces, err := monitor.DiscoverInterfaces()
@@ -87,6 +116,13 @@ func main() {
 	ctx, cancelMonitor := context.WithCancel(context.Background())
 	defer cancelMonitor()
 
+	telemetryEngine.Start(ctx)
+	if telemetryEngine.SocketAccountingAvailable() {
+		log.Println("[netweaverd] Per-process socket accounting active")
+	} else {
+		log.Println("[netweaverd] WARNING: socket accounting unavailable (ss missing?)")
+	}
+
 	notifyChan := make(chan []types.InterfaceInfo, 10)
 	go monitor.StartWatch(ctx, notifyChan)
 	go func() {
@@ -99,10 +135,11 @@ func main() {
 	}()
 
 	daemon := &DaemonService{
-		cgMgr:   cgMgr,
-		engine:  engine,
-		monitor: monitor,
-		scanner: scanner,
+		cgMgr:     cgMgr,
+		engine:    engine,
+		monitor:   monitor,
+		scanner:   scanner,
+		telemetry: telemetryEngine,
 	}
 
 	sockPath := "/run/netweaver/netweaver.sock"

@@ -10,15 +10,17 @@ import (
 var validIfaceRegex = regexp.MustCompile(`^[a-zA-Z0-9_.-]{1,16}$`)
 
 type InterfaceInfo struct {
-	Name     string `json:"name"`
-	Index    int    `json:"index"`
-	IP       string `json:"ip"`
-	Gateway  string `json:"gateway"`
-	Gateway6 string `json:"gateway6,omitempty"`
-	TableID  int    `json:"table_id"`
-	Up       bool   `json:"up"`
-	RxBytes  uint64 `json:"rx_bytes"`
-	TxBytes  uint64 `json:"tx_bytes"`
+	Name     string  `json:"name"`
+	Index    int     `json:"index"`
+	IP       string  `json:"ip"`
+	Gateway  string  `json:"gateway"`
+	Gateway6 string  `json:"gateway6,omitempty"`
+	TableID  int     `json:"table_id"`
+	Up       bool    `json:"up"`
+	RxBytes  uint64  `json:"rx_bytes"`
+	TxBytes  uint64  `json:"tx_bytes"`
+	RxRate   float64 `json:"rx_rate"`
+	TxRate   float64 `json:"tx_rate"`
 }
 
 func (i InterfaceInfo) Validate() error {
@@ -37,6 +39,8 @@ type ProcessInfo struct {
 	Cmdline           string  `json:"cmdline"`
 	UID               uint32  `json:"uid"`
 	AssignedInterface string  `json:"assigned_interface"`
+	RxBytes           uint64  `json:"rx_bytes"`
+	TxBytes           uint64  `json:"tx_bytes"`
 	RxRate            float64 `json:"rx_rate"`
 	TxRate            float64 `json:"tx_rate"`
 }
