@@ -1,0 +1,196 @@
+/* Print stylesheet for the NetWeaver technical report.
+   Rendered by: pandoc -> standalone HTML -> weasyprint. */
+
+@page {
+  size: A4;
+  margin: 17mm 16mm 18mm 16mm;
+
+  @bottom-center {
+    content: counter(page);
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 8pt;
+    color: #6b7280;
+  }
+
+  @bottom-left {
+    content: "NetWeaver — Technical Report";
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 7.5pt;
+    color: #9ca3af;
+  }
+}
+
+@page :first {
+  @bottom-center { content: none; }
+  @bottom-left { content: none; }
+}
+
+html { font-size: 10.2pt; }
+
+body {
+  font-family: "DejaVu Sans", "Liberation Sans", sans-serif;
+  color: #111827;
+  line-height: 1.45;
+  text-align: left;
+  hyphens: auto;
+}
+
+/* ---------- title block ---------- */
+header#title-block-header {
+  margin-top: 55mm;
+  text-align: left;
+  border-top: 3pt solid #7d56f4;
+  padding-top: 10mm;
+  break-after: page;
+}
+header#title-block-header h1.title {
+  font-size: 25pt;
+  line-height: 1.15;
+  margin: 0 0 6mm 0;
+  color: #111827;
+  border: none;
+  padding: 0;
+}
+header#title-block-header p.subtitle {
+  font-size: 13pt;
+  color: #4b5563;
+  margin: 0 0 18mm 0;
+  font-weight: 400;
+}
+header#title-block-header p.author,
+header#title-block-header p.date {
+  font-size: 10.5pt;
+  color: #6b7280;
+  margin: 1mm 0;
+}
+
+/* ---------- headings ---------- */
+h1 {
+  font-size: 17pt;
+  color: #111827;
+  margin: 0 0 5mm 0;
+  padding-bottom: 2.5mm;
+  border-bottom: 1.6pt solid #7d56f4;
+  break-before: page;
+  break-after: avoid;
+}
+h1:first-of-type { break-before: auto; }
+
+h2 {
+  font-size: 12.5pt;
+  margin: 7mm 0 2.5mm 0;
+  color: #1f2937;
+  break-after: avoid;
+}
+h3 {
+  font-size: 10.8pt;
+  margin: 5mm 0 2mm 0;
+  color: #374151;
+  break-after: avoid;
+}
+
+p { margin: 0 0 2.6mm 0; orphans: 3; widows: 3; }
+
+ul, ol { margin: 0 0 3mm 0; padding-left: 6mm; }
+li { margin-bottom: 1.2mm; }
+
+strong { color: #111827; }
+
+/* ---------- code ---------- */
+pre {
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 7.4pt;
+  line-height: 1.32;
+  background: #f6f7f9;
+  border: 0.4pt solid #dfe3e8;
+  border-left: 2.4pt solid #7d56f4;
+  border-radius: 1.5mm;
+  padding: 2.4mm 3mm;
+  margin: 3mm 0;
+  white-space: pre;
+  overflow: hidden;
+  break-inside: avoid;
+}
+
+code {
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 8.4pt;
+  background: #f1f2f5;
+  padding: 0.3mm 1mm;
+  border-radius: 0.8mm;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+
+/* pandoc skylighting colours, muted for print */
+pre.sourceCode .kw { color: #7c3aed; font-weight: 600; }
+pre.sourceCode .dt { color: #0f766e; }
+pre.sourceCode .dv, pre.sourceCode .bn { color: #b45309; }
+pre.sourceCode .st { color: #15803d; }
+pre.sourceCode .co { color: #6b7280; font-style: italic; }
+pre.sourceCode .fu { color: #1d4ed8; }
+pre.sourceCode .ot { color: #374151; }
+
+/* ---------- tables ---------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.6pt;
+  margin: 3mm 0 4mm 0;
+  break-inside: auto;
+}
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
+
+th {
+  background: #f3f0ff;
+  color: #312e81;
+  text-align: left;
+  font-weight: 600;
+  padding: 1.6mm 2mm;
+  border: 0.4pt solid #d9d3f5;
+}
+td {
+  padding: 1.4mm 2mm;
+  border: 0.4pt solid #e5e7eb;
+  vertical-align: top;
+}
+tbody tr:nth-child(even) td { background: #fbfbfd; }
+
+/* ---------- misc ---------- */
+blockquote {
+  margin: 3mm 0;
+  padding: 2mm 4mm;
+  border-left: 2.4pt solid #7d56f4;
+  background: #faf9ff;
+  color: #374151;
+}
+hr { border: none; border-top: 0.4pt solid #e5e7eb; margin: 6mm 0; }
+
+/* keep long ASCII diagrams on one page */
+pre:has(code) { break-inside: avoid; }
+
+/* ---------- table of contents ---------- */
+nav#TOC {
+  break-after: page;
+  margin-top: 2mm;
+}
+nav#TOC::before {
+  content: "Contents";
+  display: block;
+  font-size: 15pt;
+  color: #111827;
+  border-bottom: 1.6pt solid #7d56f4;
+  padding-bottom: 2.5mm;
+  margin-bottom: 5mm;
+}
+nav#TOC ul { list-style: none; padding-left: 0; margin: 0; }
+nav#TOC > ul > li { margin: 2.2mm 0 0.8mm 0; font-weight: 600; font-size: 10pt; }
+nav#TOC ul ul { padding-left: 6mm; }
+nav#TOC ul ul li { font-weight: 400; font-size: 9.2pt; color: #4b5563; margin: 0.7mm 0; }
+nav#TOC a { color: inherit; text-decoration: none; }
+nav#TOC a::after {
+  content: target-counter(attr(href), page);
+  float: right;
+  color: #6b7280;
+  font-weight: 400;
+}

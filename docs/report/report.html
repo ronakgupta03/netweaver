@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Ronak Gupta" />
+  <meta name="dcterms.date" content="2026-11-13" />
+  <title>NetWeaver ·
+ – NetWeaver — Per-Application Network Interface Routing on Linux</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css">
+@page {
+size: A4;
+margin: 17mm 16mm 18mm 16mm;
+@bottom-center {
+content: counter(page);
+font-family: "DejaVu Sans", sans-serif;
+font-size: 8pt;
+color: #6b7280;
+}
+@bottom-left {
+content: "NetWeaver — Technical Report";
+font-family: "DejaVu Sans", sans-serif;
+font-size: 7.5pt;
+color: #9ca3af;
+}
+}
+@page :first {
+@bottom-center { content: none; }
+@bottom-left { content: none; }
+}
+html { font-size: 10.2pt; }
+body {
+font-family: "DejaVu Sans", "Liberation Sans", sans-serif;
+color: #111827;
+line-height: 1.45;
+text-align: left;
+hyphens: auto;
+}
+
+header#title-block-header {
+margin-top: 55mm;
+text-align: left;
+border-top: 3pt solid #7d56f4;
+padding-top: 10mm;
+break-after: page;
+}
+header#title-block-header h1.title {
+font-size: 25pt;
+line-height: 1.15;
+margin: 0 0 6mm 0;
+color: #111827;
+border: none;
+padding: 0;
+}
+header#title-block-header p.subtitle {
+font-size: 13pt;
+color: #4b5563;
+margin: 0 0 18mm 0;
+font-weight: 400;
+}
+header#title-block-header p.author,
+header#title-block-header p.date {
+font-size: 10.5pt;
+color: #6b7280;
+margin: 1mm 0;
+}
+
+h1 {
+font-size: 17pt;
+color: #111827;
+margin: 0 0 5mm 0;
+padding-bottom: 2.5mm;
+border-bottom: 1.6pt solid #7d56f4;
+break-before: page;
+break-after: avoid;
+}
+h1:first-of-type { break-before: auto; }
+h2 {
+font-size: 12.5pt;
+margin: 7mm 0 2.5mm 0;
+color: #1f2937;
+break-after: avoid;
+}
+h3 {
+font-size: 10.8pt;
+margin: 5mm 0 2mm 0;
+color: #374151;
+break-after: avoid;
+}
+p { margin: 0 0 2.6mm 0; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm 0; padding-left: 6mm; }
+li { margin-bottom: 1.2mm; }
+strong { color: #111827; }
+
+pre {
+font-family: "DejaVu Sans Mono", monospace;
+font-size: 7.4pt;
+line-height: 1.32;
+background: #f6f7f9;
+border: 0.4pt solid #dfe3e8;
+border-left: 2.4pt solid #7d56f4;
+border-radius: 1.5mm;
+padding: 2.4mm 3mm;
+margin: 3mm 0;
+white-space: pre;
+overflow: hidden;
+break-inside: avoid;
+}
+code {
+font-family: "DejaVu Sans Mono", monospace;
+font-size: 8.4pt;
+background: #f1f2f5;
+padding: 0.3mm 1mm;
+border-radius: 0.8mm;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+
+pre.sourceCode .kw { color: #7c3aed; font-weight: 600; }
+pre.sourceCode .dt { color: #0f766e; }
+pre.sourceCode .dv, pre.sourceCode .bn { color: #b45309; }
+pre.sourceCode .st { color: #15803d; }
+pre.sourceCode .co { color: #6b7280; font-style: italic; }
+pre.sourceCode .fu { color: #1d4ed8; }
+pre.sourceCode .ot { color: #374151; }
+
+table {
+width: 100%;
+border-collapse: collapse;
+font-size: 8.6pt;
+margin: 3mm 0 4mm 0;
+break-inside: auto;
+}
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
+th {
+background: #f3f0ff;
+color: #312e81;
+text-align: left;
+font-weight: 600;
+padding: 1.6mm 2mm;
+border: 0.4pt solid #d9d3f5;
+}
+td {
+padding: 1.4mm 2mm;
+border: 0.4pt solid #e5e7eb;
+vertical-align: top;
+}
+tbody tr:nth-child(even) td { background: #fbfbfd; }
+
+blockquote {
+margin: 3mm 0;
+padding: 2mm 4mm;
+border-left: 2.4pt solid #7d56f4;
+background: #faf9ff;
+color: #374151;
+}
+hr { border: none; border-top: 0.4pt solid #e5e7eb; margin: 6mm 0; }
+
+pre:has(code) { break-inside: avoid; }
+
+nav#TOC {
+break-after: page;
+margin-top: 2mm;
+}
+nav#TOC::before {
+content: "Contents";
+display: block;
+font-size: 15pt;
+color: #111827;
+border-bottom: 1.6pt solid #7d56f4;
+padding-bottom: 2.5mm;
+margin-bottom: 5mm;
+}
+nav#TOC ul { list-style: none; padding-left: 0; margin: 0; }
+nav#TOC > ul > li { margin: 2.2mm 0 0.8mm 0; font-weight: 600; font-size: 10pt; }
+nav#TOC ul ul { padding-left: 6mm; }
+nav#TOC ul ul li { font-weight: 400; font-size: 9.2pt; color: #4b5563; margin: 0.7mm 0; }
+nav#TOC a { color: inherit; text-decoration: none; }
+nav#TOC a::after {
+content: target-counter(attr(href), page);
+float: right;
+color: #6b7280;
+font-weight: 400;
+}
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">NetWeaver — Per-Application Network Interface Routing
+on Linux</h1>
+<p class="subtitle">Design, Implementation and Operations Report</p>
+<p class="author">Ronak Gupta</p>
+<p class="date">2026-11-13</p>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#project-overview-core-objective" id="toc-project-overview-core-objective">1. Project Overview &amp; Core
+Objective</a>
+<ul>
+<li><a href="#the-problem" id="toc-the-problem">1.1 The problem</a></li>
+<li><a href="#core-objective" id="toc-core-objective">1.2 Core
+objective</a></li>
+<li><a href="#capabilities-implemented" id="toc-capabilities-implemented">1.3 Capabilities
+(implemented)</a></li>
+<li><a href="#measured-size" id="toc-measured-size">1.4 Measured
+size</a></li>
+</ul></li>
+<li><a href="#tech-stack-architectural-decisions" id="toc-tech-stack-architectural-decisions">2. Tech Stack &amp;
+Architectural Decisions</a>
+<ul>
+<li><a href="#stack-and-rationale" id="toc-stack-and-rationale">2.1
+Stack and rationale</a></li>
+<li><a href="#key-architectural-decisions" id="toc-key-architectural-decisions">2.2 Key architectural
+decisions</a></li>
+</ul></li>
+<li><a href="#system-architecture-project-structure" id="toc-system-architecture-project-structure">3. System Architecture
+&amp; Project Structure</a>
+<ul>
+<li><a href="#component-diagram" id="toc-component-diagram">3.1
+Component diagram</a></li>
+<li><a href="#end-to-end-packet-path" id="toc-end-to-end-packet-path">3.2 End-to-end packet path</a></li>
+<li><a href="#addressing-scheme" id="toc-addressing-scheme">3.3
+Addressing scheme</a></li>
+<li><a href="#ipc-surface" id="toc-ipc-surface">3.4 IPC surface</a></li>
+<li><a href="#annotated-file-tree" id="toc-annotated-file-tree">3.5
+Annotated file tree</a></li>
+</ul></li>
+<li><a href="#step-by-step-build-walkthrough" id="toc-step-by-step-build-walkthrough">4. Step-by-Step Build
+Walkthrough</a>
+<ul>
+<li><a href="#phase-1-domain-models" id="toc-phase-1-domain-models">4.1
+Phase 1 — Domain models</a></li>
+<li><a href="#phase-2-cgroup-manager" id="toc-phase-2-cgroup-manager">4.2 Phase 2 — cgroup manager</a></li>
+<li><a href="#phase-3-policy-routing-and-nftables" id="toc-phase-3-policy-routing-and-nftables">4.3 Phase 3 — policy
+routing and nftables</a></li>
+<li><a href="#phase-4-interface-discovery-and-priority" id="toc-phase-4-interface-discovery-and-priority">4.4 Phase 4 —
+interface discovery and priority</a></li>
+<li><a href="#phase-5-process-scanner-and-tree-deduplication" id="toc-phase-5-process-scanner-and-tree-deduplication">4.5 Phase 5 —
+process scanner and tree deduplication</a></li>
+<li><a href="#phase-6-ipc-and-the-backend-interface" id="toc-phase-6-ipc-and-the-backend-interface">4.6 Phase 6 — IPC and the
+<code>Backend</code> interface</a></li>
+<li><a href="#phase-79-daemon-cli-tui" id="toc-phase-79-daemon-cli-tui">4.7 Phase 7–9 — daemon, CLI,
+TUI</a></li>
+<li><a href="#phase-13-telemetry" id="toc-phase-13-telemetry">4.8 Phase
+13 — telemetry</a></li>
+<li><a href="#phase-14-persistent-rules-and-the-auto-router" id="toc-phase-14-persistent-rules-and-the-auto-router">4.9 Phase 14 —
+persistent rules and the auto-router</a></li>
+<li><a href="#phase-15-failover-and-the-kill-switch" id="toc-phase-15-failover-and-the-kill-switch">4.10 Phase 15 — failover
+and the kill-switch</a></li>
+<li><a href="#phase-18-ebpf-classifier" id="toc-phase-18-ebpf-classifier">4.11 Phase 18 — eBPF
+classifier</a></li>
+<li><a href="#phase-17-dashboard" id="toc-phase-17-dashboard">4.12 Phase
+17 — dashboard</a></li>
+</ul></li>
+<li><a href="#engineering-challenges-trade-offs-optimizations" id="toc-engineering-challenges-trade-offs-optimizations">5. Engineering
+Challenges, Trade-offs &amp; Optimizations</a>
+<ul>
+<li><a href="#nftables-rejects-the-entire-ruleset-when-one-cgroup-path-is-missing" id="toc-nftables-rejects-the-entire-ruleset-when-one-cgroup-path-is-missing">5.1
+nftables rejects the entire ruleset when one cgroup path is
+missing</a></li>
+<li><a href="#ipv6-leaks-through-the-only-interface-that-has-ipv6" id="toc-ipv6-leaks-through-the-only-interface-that-has-ipv6">5.2 IPv6
+leaks through the only interface that has IPv6</a></li>
+<li><a href="#route-metrics-silently-hijacked-the-system-default" id="toc-route-metrics-silently-hijacked-the-system-default">5.3 Route
+metrics silently hijacked the system default</a></li>
+<li><a href="#terminal-rows-showed-zero-traffic" id="toc-terminal-rows-showed-zero-traffic">5.4 Terminal rows showed zero
+traffic</a></li>
+<li><a href="#counter-resets-between-samples" id="toc-counter-resets-between-samples">5.5 Counter resets between
+samples</a></li>
+<li><a href="#per-application-numbers-are-tcp-only" id="toc-per-application-numbers-are-tcp-only">5.6 Per-application
+numbers are TCP-only</a></li>
+<li><a href="#kill-switch-correctness" id="toc-kill-switch-correctness">5.7 Kill-switch correctness</a></li>
+<li><a href="#security-posture-of-a-root-daemon" id="toc-security-posture-of-a-root-daemon">5.8 Security posture of a
+root daemon</a></li>
+<li><a href="#performance-characteristics" id="toc-performance-characteristics">5.9 Performance
+characteristics</a></li>
+<li><a href="#observability-gaps-known" id="toc-observability-gaps-known">5.10 Observability gaps
+(known)</a></li>
+</ul></li>
+<li><a href="#reproduction-setup-deployment-guide" id="toc-reproduction-setup-deployment-guide">6. Reproduction, Setup
+&amp; Deployment Guide</a>
+<ul>
+<li><a href="#prerequisites" id="toc-prerequisites">6.1
+Prerequisites</a></li>
+<li><a href="#environment-variables" id="toc-environment-variables">6.2
+Environment variables</a></li>
+<li><a href="#build-and-test" id="toc-build-and-test">6.3 Build and
+test</a></li>
+<li><a href="#run-development-three-terminals" id="toc-run-development-three-terminals">6.4 Run (development, three
+terminals)</a></li>
+<li><a href="#operational-commands" id="toc-operational-commands">6.5
+Operational commands</a></li>
+<li><a href="#deployment-as-a-systemd-service" id="toc-deployment-as-a-systemd-service">6.6 Deployment as a systemd
+service</a></li>
+<li><a href="#verification-recipes" id="toc-verification-recipes">6.7
+Verification recipes</a></li>
+<li><a href="#troubleshooting" id="toc-troubleshooting">6.8
+Troubleshooting</a></li>
+<li><a href="#uninstall-cleanup" id="toc-uninstall-cleanup">6.9
+Uninstall / cleanup</a></li>
+</ul></li>
+<li><a href="#appendix-a-verification-matrix" id="toc-appendix-a-verification-matrix">Appendix A — Verification
+matrix</a></li>
+<li><a href="#appendix-b-commit-chronology" id="toc-appendix-b-commit-chronology">Appendix B — Commit
+chronology</a></li>
+<li><a href="#appendix-c-glossary" id="toc-appendix-c-glossary">Appendix
+C — Glossary</a></li>
+</ul>
+</nav>
+<h1 id="project-overview-core-objective">1. Project Overview &amp; Core
+Objective</h1>
+<h2 id="the-problem">1.1 The problem</h2>
+<p>A Linux host with more than one uplink (Ethernet, Wi-Fi, USB
+tethering, VPN) selects a route per <strong>destination</strong>, never
+per <strong>application</strong>. The routing table sees a packet, not
+the process that produced it. Everything a user runs — a browser, a game
+launcher, a backup job, a torrent client — is squeezed through the same
+default gateway, chosen by route metric. The usual workarounds are all
+deficient:</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Workaround</th>
+<th>Why it falls short</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Change the global default route</td>
+<td>Affects every process; must be reverted manually</td>
+</tr>
+<tr>
+<td>Bind the socket to a source address</td>
+<td>Application must support it (<code>curl --interface</code>);
+browsers do not</td>
+</tr>
+<tr>
+<td><code>LD_PRELOAD</code> shim intercepting
+<code>connect()</code></td>
+<td>Per-runtime, breaks with static binaries, races, no IPv6
+coverage</td>
+</tr>
+<tr>
+<td>One network namespace per app</td>
+<td>Requires a veth pair, NAT rules and DNS plumbing per app;
+heavyweight and destroys host sockets</td>
+</tr>
+<tr>
+<td>Proxy (SOCKS/HTTP) per app</td>
+<td>Requires app support, adds a user-space hop, breaks UDP/QUIC</td>
+</tr>
+</tbody>
+</table>
+<p>NetWeaver solves this at the <strong>kernel policy level</strong>: a
+process is placed into a <code>cgroups v2</code> group, packets
+originating from that group are stamped with a routing-table mark, and
+<code>ip rule</code> sends marked packets into a dedicated routing table
+whose default gateway belongs to the chosen interface. The application
+is untouched, never restarted, and the system default gateway is not
+modified.</p>
+<h2 id="core-objective">1.2 Core objective</h2>
+<blockquote>
+<p>Give the operator a single control surface — TUI, CLI, or browser —
+to bind any running application to any network interface, live, with
+persistence, failure handling, and observable traffic.</p>
+</blockquote>
+<h2 id="capabilities-implemented">1.3 Capabilities (implemented)</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Mechanism</th>
+<th>Surface</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Per-application interface binding</td>
+<td>cgroup membership + fwmark + PBR table</td>
+<td>TUI, CLI, dashboard</td>
+</tr>
+<tr>
+<td>Live re-routing without restart</td>
+<td>writing PID to another <code>cgroup.procs</code></td>
+<td>all</td>
+</tr>
+<tr>
+<td>Process-tree aware binding</td>
+<td>recursive child walk before assignment</td>
+<td>daemon</td>
+</tr>
+<tr>
+<td>Packet marking</td>
+<td>eBPF <code>cgroup_skb/egress</code>, nftables fallback</td>
+<td>daemon</td>
+</tr>
+<tr>
+<td>Automatic IPv6 policy routing</td>
+<td><code>ip -6 rule</code> + per-table <code>default</code> or
+<code>unreachable</code></td>
+<td>daemon</td>
+</tr>
+<tr>
+<td>Default-route priority enforcement</td>
+<td>Ethernet 50 &gt; Wi-Fi 100 &gt; USB 700</td>
+<td>daemon</td>
+</tr>
+<tr>
+<td>Live per-application throughput</td>
+<td>TCP socket counters from <code>ss</code>, delta rate</td>
+<td>TUI, dashboard, CLI</td>
+</tr>
+<tr>
+<td>Per-interface throughput and totals</td>
+<td><code>/sys/class/net/*/statistics</code></td>
+<td>TUI, dashboard, CLI</td>
+</tr>
+<tr>
+<td>Persistent auto-routing rules</td>
+<td><code>/etc/netweaver/rules.json</code> + <code>/proc</code>
+watcher</td>
+<td>CLI, dashboard</td>
+</tr>
+<tr>
+<td>Failover on interface loss</td>
+<td>move processes to best survivor</td>
+<td>daemon</td>
+</tr>
+<tr>
+<td>Strict kill-switch</td>
+<td>quarantine cgroup, packets dropped</td>
+<td>daemon</td>
+</tr>
+<tr>
+<td>Local web dashboard</td>
+<td>loopback HTTP proxy to daemon UDS</td>
+<td><code>netweaver web</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Non-goals.</strong> NetWeaver is not a firewall, not a VPN,
+and not a traffic shaper. It does not inspect packet contents and does
+not require a kernel module. It targets Linux only.</p>
+<h2 id="measured-size">1.4 Measured size</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Go source</td>
+<td>4,952 lines across 41 files</td>
+</tr>
+<tr>
+<td>Inline assets (BPF C, dashboard HTML)</td>
+<td>368 lines</td>
+</tr>
+<tr>
+<td>Packages</td>
+<td>16 (<code>cmd/…</code> ×2, <code>internal/…</code> ×14)</td>
+</tr>
+<tr>
+<td>Test files / test functions</td>
+<td>14 / 41</td>
+</tr>
+<tr>
+<td>External Go dependencies</td>
+<td><code>bubbletea</code>, <code>lipgloss</code>,
+<code>gopsutil/v3</code>, <code>cilium/ebpf</code>,
+<code>golang.org/x/sys</code></td>
+</tr>
+</tbody>
+</table>
+<h1 id="tech-stack-architectural-decisions">2. Tech Stack &amp;
+Architectural Decisions</h1>
+<h2 id="stack-and-rationale">2.1 Stack and rationale</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Choice</th>
+<th>Version</th>
+<th>Rationale (vs. alternative)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Language</td>
+<td><strong>Go</strong></td>
+<td>1.22+</td>
+<td>Single static binary for a root daemon; goroutines map cleanly onto
+three independent watchers (interfaces 2 s, rules 2 s, telemetry 1 s);
+<code>os/exec</code> and <code>syscall</code> access without CGO. Chosen
+over C (manual memory management for a long-lived root daemon) and Rust
+(slower iteration for a 5 kLOC prototype with heavy shell-tool
+integration).</td>
+</tr>
+<tr>
+<td>Process isolation</td>
+<td><strong>cgroups v2</strong></td>
+<td>kernel 6.x</td>
+<td>The only kernel object that is (a) inherited by children, (b)
+visible to nftables as <code>socket cgroupv2</code>, and (c) visible to
+eBPF as <code>bpf_get_current_cgroup_id()</code>. Network namespaces
+were rejected: per-app netns plus veth plus NAT plus DNS is materially
+more code and breaks loopback IPC.</td>
+</tr>
+<tr>
+<td>Route selection</td>
+<td><strong>Policy-based routing</strong> (<code>ip rule</code>,
+<code>ip route</code>)</td>
+<td>iproute2</td>
+<td>Marks are matched by <code>fwmark</code> rules at priority 1000,
+earlier than the main table (32766). A user-space proxy was rejected
+because it breaks UDP/QUIC and requires app cooperation.</td>
+</tr>
+<tr>
+<td>Marking (primary)</td>
+<td><strong>eBPF <code>cgroup_skb/egress</code></strong></td>
+<td><code>cilium/ebpf</code> v0.22</td>
+<td>Sets <code>skb-&gt;mark</code> in the socket send path with one map
+lookup, no rule explosion, no nftables per-packet traversal of a long
+chain. Pure-Go loader, no CGO, object embedded with
+<code>go:embed</code>. Rejected bcc (Python runtime dependency) and
+libbpfgo (CGO).</td>
+</tr>
+<tr>
+<td>Marking (fallback)</td>
+<td><strong>nftables <code>socket cgroupv2</code></strong></td>
+<td>nft ≥ 0.9.8</td>
+<td>Works on kernels without BPF privileges and is auditable with
+<code>nft list ruleset</code> during a viva. Rejected iptables
+<code>xt_cgroup</code> (deprecated, per-interface chains).</td>
+</tr>
+<tr>
+<td>PBR / interface mutation</td>
+<td><strong><code>ip</code> and <code>nft</code> executed via
+<code>os/exec</code></strong></td>
+<td>—</td>
+<td>Explicit, replayable, and visible in shell history during
+evaluation. Netlink libraries would remove fork/exec overhead but hide
+the exact commands from the operator; at ≤ 3 invocations per interface
+change the cost is irrelevant.</td>
+</tr>
+<tr>
+<td>Telemetry (per app)</td>
+<td><strong><code>ss -tinp</code> parsing</strong></td>
+<td>iproute2</td>
+<td><code>ss</code> exposes <code>bytes_acked</code> /
+<code>bytes_received</code> per TCP socket plus the owning PID, via
+<code>INET_DIAG</code>. Chosen over a pcap sniffer
+(<code>AF_PACKET</code>, root-only, high CPU) and over a full netlink
+<code>INET_DIAG</code> client (≈400 lines of marshalling for the same
+data). Limitation: TCP only — documented in §5.6.</td>
+</tr>
+<tr>
+<td>Telemetry (per interface)</td>
+<td><strong>sysfs counters</strong></td>
+<td>—</td>
+<td><code>rx_bytes</code> / <code>tx_bytes</code> are exact, cheap, and
+protocol-agnostic; sampled at 1 Hz.</td>
+</tr>
+<tr>
+<td>IPC</td>
+<td><strong>JSON over Unix domain socket</strong></td>
+<td>—</td>
+<td><code>encoding/json</code> + <code>net.Listen(&quot;unix&quot;)</code>. gRPC
+was rejected (protoc toolchain, schema drift for a 9-method API). D-Bus
+was rejected (desktop-session coupling, root daemon would need policy
+files).</td>
+</tr>
+<tr>
+<td>TUI</td>
+<td><strong>Bubbletea + Lipgloss</strong></td>
+<td>v1.3.10 / v1.1.0</td>
+<td>Elm-style <code>Model/Update/View</code> gives deterministic
+rendering with a 1 s tick — no manual terminal state machine. Rejected
+<code>tview</code> (imperative callbacks, harder to test
+<code>Update</code>) and raw <code>termios</code>/curses.</td>
+</tr>
+<tr>
+<td>Web UI</td>
+<td><strong><code>net/http</code> + one embedded HTML file</strong></td>
+<td>stdlib</td>
+<td>No Node toolchain, no bundler, offline-capable; the page polls a
+JSON state endpoint every 1.5 s. React/Vite rejected as disproportionate
+for one screen.</td>
+</tr>
+<tr>
+<td>Persistence</td>
+<td><strong>JSON files with atomic rename</strong></td>
+<td>—</td>
+<td><code>/etc/netweaver/rules.json</code> and
+<code>settings.json</code> are small, human-editable and diff-friendly.
+SQLite rejected (CGO or pure-Go driver for two documents); no external
+service.</td>
+</tr>
+<tr>
+<td>Process enumeration</td>
+<td><strong>gopsutil v3 + direct procfs</strong></td>
+<td>v3.24.5</td>
+<td>gopsutil for <code>Children()</code>/<code>Name()</code> convenience
+in the scanner; direct <code>/proc</code> reads on the hot paths
+(auto-router at 2 s) to avoid allocation churn.</td>
+</tr>
+<tr>
+<td>Packaging</td>
+<td><strong>Makefile + systemd unit</strong></td>
+<td>—</td>
+<td><code>make build</code>, <code>make test</code>,
+<code>make bpf</code>; <code>scripts/netweaver.service</code> with
+<code>KillMode=process</code>.</td>
+</tr>
+<tr>
+<td>Verification</td>
+<td><strong><code>go test</code>, user netns
+(<code>unshare -rn</code>)</strong></td>
+<td>—</td>
+<td>Routing behaviour is proven on real veth pairs inside an
+unprivileged network namespace, not mocked.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="key-architectural-decisions">2.2 Key architectural
+decisions</h2>
+<p><strong>D1 — Split privileges.</strong> All kernel mutation (cgroups,
+routes, nftables, BPF) lives in <code>netweaverd</code> (root). The
+client binary never runs as root; it speaks JSON over a
+<code>0666</code> Unix socket. This keeps the frequently-invoked UI path
+unprivileged and gives one audit point for privileged operations.</p>
+<p><strong>D2 — Bind at the cgroup, not at the socket.</strong>
+Assignment writes a PID into
+<code>/sys/fs/cgroup/netweaver/&lt;iface&gt;/cgroup.procs</code>. The
+kernel moves the whole thread group; children spawned later inherit the
+cgroup. Routing therefore survives application restarts of child workers
+(browser renderers, Electron helpers) with no per-PID bookkeeping.</p>
+<p><strong>D3 — One routing table per interface, not per
+application.</strong> Tables are keyed by interface
+(<code>TableID = 0x100 + ifindex</code>) because the route set only
+depends on the uplink. Applications scale into tables via marks, so N
+apps × M interfaces produces N cgroup writes and M tables — not N×M
+rules.</p>
+<p><strong>D4 — Two marking engines behind one interface.</strong>
+<code>routing.Engine</code> renders nftables;
+<code>classifier.Classifier</code> loads eBPF. The daemon prefers eBPF
+and falls back to nftables on any load/attach failure, re-applying a
+NAT-only nftables ruleset so masquerading never regresses.</p>
+<p><strong>D5 — Declarative reconciliation.</strong> Every mutation path
+recomputes desired state and converges: <code>buildRuleset</code>
+filters by cgroup existence and re-renders the table from scratch;
+<code>classifier.Apply</code> diffs desired cgroups against attached
+links; the interface watcher diffs previous and current snapshots.
+Nothing relies on incremental bookkeeping being correct after a
+crash.</p>
+<h1 id="system-architecture-project-structure">3. System Architecture
+&amp; Project Structure</h1>
+<h2 id="component-diagram">3.1 Component diagram</h2>
+<pre><code>┌─────────────────────────────┐
+│ browser                     │
+└─────────────────────────────┘
+               │                UDS + JSON
+┌──────────────▼──────────────┐        ┌────────────────────────────────────────────┐
+│ netweaver web (:8088)       │───────▶│ netweaverd  (root daemon)                  │
+└─────────────────────────────┘        │                                            │
+                                       │  api.Server  ·  9 JSON methods             │
+┌─────────────────────────────┐        │   ├─ process.Scanner                       │
+│ netweaver TUI / CLI         │───────▶│   ├─ cgroups.Manager                       │
+└─────────────────────────────┘        │   ├─ routing.Engine                        │
+                                       │   ├─ telemetry.Engine                      │
+                                       │   ├─ rules.Store                           │
+                                       │   ├─ autoroute.Router                      │
+                                       │   ├─ policy.Manager                        │
+                                       │   └─ classifier (eBPF)                     │
+                                       └──────────────────────┬─────────────────────┘
+                                                              │ exec / syscalls
+                                       ┌──────────────────────▼─────────────────────┐
+                                       │ Linux kernel                               │
+                                       │  cgroups v2 · nftables · FIB rules         │
+                                       │  eBPF cgroup_skb · net devices             │</code></pre>
+<p>Three independent producers push into the same snapshot space, and
+every client reads a projection of it:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Producer</th>
+<th>Period</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>interfaces.Monitor.StartWatch</code></td>
+<td>2 s</td>
+<td>full <code>[]InterfaceInfo</code> snapshot</td>
+</tr>
+<tr>
+<td><code>telemetry.Engine.Start</code></td>
+<td>1 s</td>
+<td>per-PID and per-interface rates and totals</td>
+</tr>
+<tr>
+<td><code>autoroute.Router.Start</code></td>
+<td>2 s</td>
+<td>rule matches applied to new PIDs</td>
+</tr>
+</tbody>
+</table>
+<h2 id="end-to-end-packet-path">3.2 End-to-end packet path</h2>
+<pre><code> write() on a socket
+        │
+        ├─ (A) cgroup_skb/egress eBPF  ──► skb-&gt;mark = 0x104      [preferred]
+        └─ (B) nft output/mangle chain ──► meta mark set 0x104    [fallback]
+                    socket cgroupv2 level 2 &quot;netweaver/wlan0&quot;
+        │
+        ├─ ip rule:  fwmark 0x104 lookup 260   (priority 1000)
+        ├─ table 260: default via 10.5.50.1 dev wlan0
+        ├─ ip -6 rule: fwmark 0x104 lookup 260
+        ├─ nft postrouting/srcnat: oifname &quot;wlan0&quot; mark 0x104 masquerade
+        └─ egress on wlan0</code></pre>
+<p>The strict-policy path short-circuits at step (A/B): the first rule
+in the output chain is
+<code>socket cgroupv2 level 2 &quot;netweaver/blocked&quot; drop</code>, and the
+eBPF program returns <code>0</code> for that cgroup, so quarantined
+traffic never reaches the FIB.</p>
+<h2 id="addressing-scheme">3.3 Addressing scheme</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Object</th>
+<th>Formula / value</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cgroup path</td>
+<td><code>/sys/fs/cgroup/netweaver/&lt;iface&gt;</code></td>
+<td><code>/sys/fs/cgroup/netweaver/wlan0</code></td>
+</tr>
+<tr>
+<td>routing table</td>
+<td><code>0x100 + ifindex</code></td>
+<td>ifindex 4 → table 260</td>
+</tr>
+<tr>
+<td>fwmark</td>
+<td>identical to table ID</td>
+<td><code>0x104</code></td>
+</tr>
+<tr>
+<td>FIB rule priority</td>
+<td><code>1000</code> (before <code>main</code> at 32766)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>quarantine cgroup</td>
+<td><code>netweaver/blocked</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>default metrics</td>
+<td>Ethernet 50, Wi-Fi 100, USB 700</td>
+<td>—</td>
+</tr>
+<tr>
+<td>daemon socket</td>
+<td><code>/run/netweaver/netweaver.sock</code></td>
+<td>mode <code>0666</code></td>
+</tr>
+<tr>
+<td>rules / settings</td>
+<td><code>/etc/netweaver/{rules,settings}.json</code></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ipc-surface">3.4 IPC surface</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Method</th>
+<th>Request fields</th>
+<th>Response</th>
+<th>Backend call</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>interfaces.list</code></td>
+<td>—</td>
+<td><code>interfaces[]</code></td>
+<td><code>Monitor.DiscoverInterfaces</code> + telemetry</td>
+</tr>
+<tr>
+<td><code>processes.list</code></td>
+<td>—</td>
+<td><code>processes[]</code></td>
+<td><code>Scanner.ScanProcesses</code> + subtree telemetry</td>
+</tr>
+<tr>
+<td><code>route.assign</code></td>
+<td><code>pid</code>, <code>interface</code></td>
+<td>—</td>
+<td><code>AssignRoute</code> (tree walk + cgroup write)</td>
+</tr>
+<tr>
+<td><code>route.reset</code></td>
+<td><code>pid</code></td>
+<td>—</td>
+<td><code>ResetRoute</code></td>
+</tr>
+<tr>
+<td><code>rules.list</code></td>
+<td>—</td>
+<td><code>rules[]</code></td>
+<td><code>rules.Store.List</code></td>
+</tr>
+<tr>
+<td><code>rules.add</code></td>
+<td><code>rule{match,interface,policy}</code></td>
+<td>—</td>
+<td><code>rules.Store.Add</code></td>
+</tr>
+<tr>
+<td><code>rules.remove</code></td>
+<td><code>match</code></td>
+<td>—</td>
+<td><code>rules.Store.Remove</code></td>
+</tr>
+<tr>
+<td><code>policy.get</code></td>
+<td>—</td>
+<td><code>policy</code></td>
+<td><code>policy.Manager.Default</code></td>
+</tr>
+<tr>
+<td><code>policy.set</code></td>
+<td><code>policy</code></td>
+<td><code>policy</code></td>
+<td><code>policy.Manager.SetDefault</code></td>
+</tr>
+</tbody>
+</table>
+<p>Transport: one JSON object per connection in each direction, then the
+connection closes (<code>internal/api/server.go:handleConn</code>). No
+framing layer is needed because each request fits in a single JSON
+document and <code>json.Decoder</code> streams until the object is
+complete.</p>
+<h2 id="annotated-file-tree">3.5 Annotated file tree</h2>
+<pre><code>netweaver/
+├── cmd/
+│   ├── netweaverd/
+│   │   ├── main.go              daemon wiring: cgroup init, discovery, watchers,
+│   │   │                        eBPF load + fallback, API server, signal shutdown
+│   │   └── failover.go          interface diffing, failover/strict reaction,
+│   │                            quarantine release, classifier resync, nftables fallback
+│   └── netweaver/
+│       ├── main.go              subcommand dispatch (list/interfaces/assign/reset/
+│       │                        rules/policy/web/run), NETWEAVER_SOCK resolution
+│       ├── rules.go             `rules list|add|remove|clear` via API
+│       ├── policy.go            `policy [set]` via API
+│       ├── run.go               `run -i &lt;iface&gt; cmd…`: spawn, attach PID, wait
+│       └── web.go               `web [-addr] [-open]`, signal lifecycle
+├── internal/
+│   ├── api/                     UDS JSON protocol; Backend interface, server, client
+│   ├── autoroute/               /proc watcher: match → assign once per PID, retry,
+│   │                            version-triggered re-apply, dead-PID pruning
+│   ├── cgroups/                 hierarchy init/migrate, EnsureInterfaceCgroup,
+│   │                            AssignPID, ResetPID, PIDs(iface), Block/BlockedCgroup
+│   ├── classifier/              eBPF loader (embed), per-cgroup attach/detach,
+│   │   ├── classifier.go        mark map sync, kernfs-inode cgroup IDs
+│   │   ├── netweaver_bpfel.o    compiled object (committed; `make bpf` regenerates)
+│   │   └── bpf/netweaver.c      cgroup_skb/egress program source
+│   ├── failover/                pure policy engine: best survivor, block vs move
+│   ├── interfaces/              discovery, carrier check, v4/v6 gateways,
+│   │                            priority ordering, default-metric enforcement
+│   ├── policy/                  precedence resolution, settings.json persistence
+│   ├── process/                 user-app scanner: dedup, terminal task naming,
+│   │                            session-leader detection, cgroup attribution
+│   ├── routing/                 PBR tables, v4/v6 FIB rules, nftables ruleset
+│   │                            rendering and cgroup-path filtering
+│   ├── rules/                   rules.json store, glob matching, atomic writes,
+│   │                            mutation version
+│   ├── telemetry/               ss parser, sampling engine, rate math, formatting
+│   ├── tui/                     Bubbletea model/update/view, sparklines, paging
+│   ├── types/                   shared domain models and policy constants
+│   └── web/                     HTTP server + embedded single-page dashboard
+├── scripts/
+│   ├── netweaver.service        systemd unit (KillMode=process)
+│   ├── setup-veth-test.sh       two synthetic uplinks for demos
+│   ├── teardown-veth-test.sh    removes them
+│   └── verify-ebpf.sh           root-only kernel verification of the classifier
+├── docs/superpowers/            original design specification and build plan
+├── Makefile                     build · test · bpf
+└── README.md                    operator documentation</code></pre>
+<h1 id="step-by-step-build-walkthrough">4. Step-by-Step Build
+Walkthrough</h1>
+<p>The build order below matches the repository history. Each phase
+produced a compilable, tested increment; later phases did not rework
+earlier data models except where noted.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>#</th>
+<th>Phase</th>
+<th>Commit</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Design specification</td>
+<td><code>47fa08d</code></td>
+<td>threat model, API shape, decision log</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Domain models</td>
+<td><code>fab4547</code></td>
+<td><code>types.InterfaceInfo</code>, <code>ProcessInfo</code>,
+<code>Rule</code>, validation</td>
+</tr>
+<tr>
+<td>2</td>
+<td>cgroups v2 manager</td>
+<td><code>43d027a</code></td>
+<td>hierarchy, assignment, reset, teardown</td>
+</tr>
+<tr>
+<td>3</td>
+<td>PBR + nftables engine</td>
+<td><code>3399d69</code></td>
+<td>tables, fwmark rules, ruleset template</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Interface discovery</td>
+<td><code>c329998</code></td>
+<td>carrier filtering, v4/v6 gateways, watcher</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Process scanner</td>
+<td><code>af90ef0</code></td>
+<td>user-app list, tree collapse, terminal naming</td>
+</tr>
+<tr>
+<td>6</td>
+<td>IPC</td>
+<td><code>036620a</code></td>
+<td>UDS server/client, <code>Backend</code> interface</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Daemon + systemd</td>
+<td><code>4315d9b</code></td>
+<td>wiring, signal shutdown, unit file</td>
+</tr>
+<tr>
+<td>8</td>
+<td>CLI + run wrapper</td>
+<td><code>44711ca</code></td>
+<td>list/interfaces/assign/reset/run</td>
+</tr>
+<tr>
+<td>9</td>
+<td>TUI</td>
+<td><code>4db0da9</code></td>
+<td>Bubbletea dashboard, paging</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Netns harness</td>
+<td><code>c702813</code></td>
+<td>dual-veth verification scripts</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Review fixes</td>
+<td><code>78c356c</code>…<code>363b122</code></td>
+<td>multi-gateway, socket mode, teardown, dedup</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Priority + IPv6</td>
+<td><code>f3194ac</code></td>
+<td>Ethernet &gt; Wi-Fi &gt; USB, <code>unreachable</code> v6
+defaults</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Telemetry</td>
+<td><code>4a1461f</code></td>
+<td>per-app/interface rates and totals</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Rules</td>
+<td><code>ce93d8a</code></td>
+<td>persistence + auto-attach on launch</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Policies</td>
+<td><code>30ff2e6</code></td>
+<td>failover, kill-switch, quarantine</td>
+</tr>
+<tr>
+<td>16</td>
+<td>nft path fix</td>
+<td><code>b3bd517</code></td>
+<td>cgroup existence filtering (see §5.1)</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Dashboard</td>
+<td><code>535c7e5</code></td>
+<td>embedded web UI over UDS</td>
+</tr>
+<tr>
+<td>18</td>
+<td>eBPF classifier</td>
+<td><code>9013fe6</code></td>
+<td>cgroup_skb marking + fallback</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Classifier tests</td>
+<td><code>5cbd6a3</code></td>
+<td>injectable attach/map paths, verify script</td>
+</tr>
+</tbody>
+</table>
+<h2 id="phase-1-domain-models">4.1 Phase 1 — Domain models</h2>
+<p><code>internal/types/models.go</code> is deliberately small: it is
+the contract shared by the daemon, the clients and the tests. Validation
+lives next to the data so that no handler can forget it.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> InterfaceInfo <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    Name     <span class="dt">string</span> <span class="st">`json:&quot;name&quot;`</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    Index    <span class="dt">int</span>    <span class="st">`json:&quot;index&quot;`</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    IP       <span class="dt">string</span> <span class="st">`json:&quot;ip&quot;`</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    Gateway  <span class="dt">string</span> <span class="st">`json:&quot;gateway&quot;`</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    Gateway6 <span class="dt">string</span> <span class="st">`json:&quot;gateway6,omitempty&quot;`</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    TableID  <span class="dt">int</span>    <span class="st">`json:&quot;table_id&quot;`</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    Up       <span class="dt">bool</span>   <span class="st">`json:&quot;up&quot;`</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    RxBytes  <span class="dt">uint64</span> <span class="st">`json:&quot;rx_bytes&quot;`</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    TxBytes  <span class="dt">uint64</span> <span class="st">`json:&quot;tx_bytes&quot;`</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    RxRate   <span class="dt">float64</span> <span class="st">`json:&quot;rx_rate&quot;`</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    TxRate   <span class="dt">float64</span> <span class="st">`json:&quot;tx_rate&quot;`</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>TableID</code> is <strong>derived</strong>
+(<code>0x100 + ifindex</code>) rather than configured: it survives
+daemon restarts without persistence, and is collision-free per netns
+because <code>ifindex</code> is unique.</p>
+<h2 id="phase-2-cgroup-manager">4.2 Phase 2 — cgroup manager</h2>
+<p><code>internal/cgroups/manager.go</code> implements the only
+operation that actually changes behaviour:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>Manager<span class="op">)</span> AssignPID<span class="op">(</span>iface <span class="dt">string</span><span class="op">,</span> pid <span class="dt">int</span><span class="op">)</span> <span class="dt">error</span> <span class="op">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> pid <span class="op">&lt;=</span> <span class="dv">100</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> fmt<span class="op">.</span>Errorf<span class="op">(</span><span class="st">&quot;cannot assign system process PID %d&quot;</span><span class="op">,</span> pid<span class="op">)</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    path<span class="op">,</span> err <span class="op">:=</span> m<span class="op">.</span>InterfaceCgroupPath<span class="op">(</span>iface<span class="op">)</span>      <span class="co">// regex-validated iface name</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> err <span class="op">!=</span> <span class="ot">nil</span> <span class="op">{</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> err</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    f<span class="op">,</span> err <span class="op">:=</span> os<span class="op">.</span>OpenFile<span class="op">(</span>filepath<span class="op">.</span>Join<span class="op">(</span>path<span class="op">,</span> <span class="st">&quot;cgroup.procs&quot;</span><span class="op">),</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        os<span class="op">.</span>O_WRONLY<span class="op">|</span>os<span class="op">.</span>O_CREATE<span class="op">|</span>os<span class="op">.</span>O_APPEND<span class="op">,</span> <span class="bn">0644</span><span class="op">)</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> err <span class="op">!=</span> <span class="ot">nil</span> <span class="op">{</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> fmt<span class="op">.</span>Errorf<span class="op">(</span><span class="st">&quot;failed to open cgroup.procs: %w&quot;</span><span class="op">,</span> err<span class="op">)</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">defer</span> f<span class="op">.</span>Close<span class="op">()</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    _<span class="op">,</span> err <span class="op">=</span> f<span class="op">.</span>WriteString<span class="op">(</span>strconv<span class="op">.</span>Itoa<span class="op">(</span>pid<span class="op">)</span> <span class="op">+</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> err</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Three details matter:</p>
+<ol type="1">
+<li><strong>Writing a PID moves the entire thread group</strong>, so a
+multi-threaded browser is not half-routed. This is why assignment is a
+single integer write per process rather than a socket-level hook.</li>
+<li><strong><code>InitHierarchy</code> migrates everything back to the
+root cgroup at startup</strong> (<code>MigrateAllToRoot</code>). A
+daemon crash leaves processes in <code>netweaver/*</code>; without this
+sweep, stale membership would silently keep routing them on the next
+boot.</li>
+<li><strong>PID ≤ 100 is refused</strong> at both the cgroup layer and
+<code>GetProcessTree</code>. This prevents a mistyped CLI argument from
+moving <code>systemd</code> or the kernel threads into a routing
+slice.</li>
+</ol>
+<h2 id="phase-3-policy-routing-and-nftables">4.3 Phase 3 — policy
+routing and nftables</h2>
+<p><code>internal/routing/engine.go</code> writes state, then renders a
+complete ruleset:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. per-interface default route inside its own table</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ip</span> route replace default via <span class="op">&lt;</span>GW<span class="op">&gt;</span> dev <span class="op">&lt;</span>IFACE<span class="op">&gt;</span> table <span class="op">&lt;</span>TID<span class="op">&gt;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. IPv6 counterpart, or an explicit black hole when the link has no v6</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">ip</span> <span class="at">-6</span> route replace default via <span class="op">&lt;</span>GW6<span class="op">&gt;</span> dev <span class="op">&lt;</span>IFACE<span class="op">&gt;</span> table <span class="op">&lt;</span>TID<span class="op">&gt;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">ip</span> <span class="at">-6</span> route replace unreachable default table <span class="op">&lt;</span>TID<span class="op">&gt;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. FIB rules, deleted first so the operation is idempotent</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="ex">ip</span> rule    del fwmark 0x<span class="op">&lt;</span>TID<span class="op">&gt;</span> table <span class="op">&lt;</span>TID<span class="op">&gt;</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="ex">ip</span> rule    add fwmark 0x<span class="op">&lt;</span>TID<span class="op">&gt;</span> table <span class="op">&lt;</span>TID<span class="op">&gt;</span> priority 1000</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="ex">ip</span> <span class="at">-6</span> rule del fwmark 0x<span class="op">&lt;</span>TID<span class="op">&gt;</span> table <span class="op">&lt;</span>TID<span class="op">&gt;</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="ex">ip</span> <span class="at">-6</span> rule add fwmark 0x<span class="op">&lt;</span>TID<span class="op">&gt;</span> table <span class="op">&lt;</span>TID<span class="op">&gt;</span> priority 1000</span></code></pre></div>
+<p>The nftables template is the contract between marking and
+routing:</p>
+<pre class="nft"><code>table inet netweaver {
+    chain output {
+        type route hook output priority mangle; policy accept;
+        socket cgroupv2 level 2 &quot;netweaver/blocked&quot; drop          # kill-switch
+        socket cgroupv2 level 2 &quot;netweaver/wlan0&quot; meta mark set 0x104
+    }
+    chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        oifname &quot;wlan0&quot; meta mark 0x104 masquerade
+    }
+}</code></pre>
+<p><code>priority mangle</code> runs before routing decisions;
+<code>type route</code> means the chain may alter routing metadata (the
+mark) that the FIB consults immediately afterwards. The
+<code>postrouting</code>/<code>srcnat</code> chain only rewrites source
+addresses for the mark that belongs to that interface, so a packet can
+never be NATed with the wrong uplink’s address.</p>
+<p><strong>Why <code>inet</code> rather than <code>ip</code> +
+<code>ip6</code>?</strong> One table covers both families; the same
+cgroup rule marks v4 and v6 packets, which eliminates the class of IPv6
+leaks described in §5.2.</p>
+<h2 id="phase-4-interface-discovery-and-priority">4.4 Phase 4 —
+interface discovery and priority</h2>
+<p><code>interfaces.Monitor.DiscoverInterfaces</code> filters
+aggressively, because a wrong entry here would create a routing table
+with a dead gateway:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> iface<span class="op">.</span>Flags<span class="op">&amp;</span>net<span class="op">.</span>FlagLoopback <span class="op">!=</span> <span class="dv">0</span> <span class="op">||</span> iface<span class="op">.</span>Flags<span class="op">&amp;</span>net<span class="op">.</span>FlagUp <span class="op">==</span> <span class="dv">0</span> <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> strings<span class="op">.</span>HasPrefix<span class="op">(</span>iface<span class="op">.</span>Name<span class="op">,</span> <span class="st">&quot;br-&quot;</span><span class="op">)</span> <span class="op">||</span> strings<span class="op">.</span>HasPrefix<span class="op">(</span>iface<span class="op">.</span>Name<span class="op">,</span> <span class="st">&quot;docker&quot;</span><span class="op">)</span> <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">!</span>isCarrierUp<span class="op">(</span>iface<span class="op">.</span>Name<span class="op">)</span> <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span>          <span class="co">// /sys/class/net/&lt;n&gt;/carrier</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// require a global IPv4 address; record v4 and v6 gateways from `ip route show`</span></span></code></pre></div>
+<p>Two behaviours are enforced on every discovery pass:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> Priority<span class="op">(</span>name <span class="dt">string</span><span class="op">)</span> <span class="dt">int</span> <span class="op">{</span>          <span class="co">// lower wins</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">switch</span> <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">case</span> strings<span class="op">.</span>HasPrefix<span class="op">(</span>name<span class="op">,</span> <span class="st">&quot;eno&quot;</span><span class="op">),</span> strings<span class="op">.</span>HasPrefix<span class="op">(</span>name<span class="op">,</span> <span class="st">&quot;eth&quot;</span><span class="op">):</span> <span class="cf">return</span> <span class="dv">50</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">case</span> strings<span class="op">.</span>HasPrefix<span class="op">(</span>name<span class="op">,</span> <span class="st">&quot;wlan&quot;</span><span class="op">),</span> strings<span class="op">.</span>HasPrefix<span class="op">(</span>name<span class="op">,</span> <span class="st">&quot;wl&quot;</span><span class="op">):</span> <span class="cf">return</span> <span class="dv">100</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">default</span><span class="op">:</span> <span class="cf">return</span> <span class="dv">700</span>                   <span class="co">// USB tethering and anything else</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">// EnforceDefaultPriorities: ip route replace default via GW dev IF metric &lt;Priority&gt;</span></span></code></pre></div>
+<p>This is a direct fix for the bug class where NetworkManager gives a
+USB-tethered phone metric 100 and Wi-Fi 600, silently making cellular
+data the system default. The daemon rewrites the main-table metrics on
+every discovery pass, so plugging the phone in no longer steals the
+default route.</p>
+<h2 id="phase-5-process-scanner-and-tree-deduplication">4.5 Phase 5 —
+process scanner and tree deduplication</h2>
+<p>The scanner answers “what would a user recognise as an application?”
+rather than “what is running”. The rules, in order:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> p<span class="op">.</span>Pid <span class="op">&lt;=</span> <span class="dv">100</span> <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span>                       <span class="co">// init/systemd</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> ppid <span class="op">==</span> <span class="dv">2</span> <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span>                          <span class="co">// kernel workers</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> uid <span class="op">&lt;</span> <span class="dv">1000</span> <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span>                         <span class="co">// system services</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> isIgnored<span class="op">(</span>name<span class="op">)</span> <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span>                    <span class="co">// pipewire, xdg-*, gvfs…</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> parentName <span class="op">==</span> name <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span>                 <span class="co">// browser helper collapse</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> shell <span class="op">&amp;&amp;</span> p<span class="op">.</span>Pid <span class="op">!=</span> sessionID <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span>        <span class="co">// only the session leader shell</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>displayName <span class="op">=</span> fmt<span class="op">.</span>Sprintf<span class="op">(</span><span class="st">&quot;terminal (%s)&quot;</span><span class="op">,</span> task<span class="op">)</span>   <span class="co">// e.g. terminal (omp)</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>markDescendants<span class="op">(</span>p<span class="op">,</span> seenDescendants<span class="op">)</span>                <span class="co">// children are not separate rows</span></span></code></pre></div>
+<p><code>markDescendants</code> is what stops a single browser from
+occupying twenty rows; the tree is rendered once, at its root, and later
+phases attribute child traffic back to that root with
+<code>GetProcessTree</code>. Shell rows are named after their foreground
+child (<code>getShellTask</code>), which is why the TUI can say
+<code>terminal (sudo ./bin/netweaverd)</code> instead of three
+indistinguishable <code>zsh</code> lines.</p>
+<h2 id="phase-6-ipc-and-the-backend-interface">4.6 Phase 6 — IPC and the
+<code>Backend</code> interface</h2>
+<p>The daemon satisfies <code>api.Backend</code>; the tests use a
+30-line mock that satisfies the same interface. That single seam is why
+the protocol, the CLI and the dashboard are testable without root:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> Backend <span class="kw">interface</span> <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    ListInterfaces<span class="op">()</span> <span class="op">([]</span>types<span class="op">.</span>InterfaceInfo<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    ListProcesses<span class="op">()</span> <span class="op">([]</span>types<span class="op">.</span>ProcessInfo<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    AssignRoute<span class="op">(</span>pid <span class="dt">int</span><span class="op">,</span> iface <span class="dt">string</span><span class="op">)</span> <span class="dt">error</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    ResetRoute<span class="op">(</span>pid <span class="dt">int</span><span class="op">)</span> <span class="dt">error</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    ListRules<span class="op">()</span> <span class="op">[]</span>types<span class="op">.</span>Rule</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    AddRule<span class="op">(</span>rule types<span class="op">.</span>Rule<span class="op">)</span> <span class="dt">error</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    RemoveRule<span class="op">(</span>match <span class="dt">string</span><span class="op">)</span> <span class="dt">error</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    GetPolicy<span class="op">()</span> <span class="dt">string</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    SetPolicy<span class="op">(</span>policy <span class="dt">string</span><span class="op">)</span> <span class="dt">error</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Socket permissions are widened with
+<code>os.Chmod(sockPath, 0666)</code> after <code>Listen</code>, so an
+unprivileged TUI can talk to a root daemon without <code>sudo</code>.
+The privileged operations themselves still validate their inputs
+(interface regex, PID floor), so a local user cannot route arbitrary
+system processes.</p>
+<h2 id="phase-79-daemon-cli-tui">4.7 Phase 7–9 — daemon, CLI, TUI</h2>
+<p>The daemon is intentionally a flat composition root: it owns no
+business logic beyond wiring and lifecycle ordering.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// startup order that matters</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>cgMgr<span class="op">.</span>InitHierarchy<span class="op">()</span>                  <span class="co">// 1. reclaim any stale membership</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>monitor<span class="op">.</span>DiscoverInterfaces<span class="op">()</span>           <span class="co">// 2. learn interfaces</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>cgMgr<span class="op">.</span>EnsureInterfaceCgroup<span class="op">(</span>iface<span class="op">)</span>     <span class="co">// 3. create cgroups BEFORE nftables</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>engine<span class="op">.</span>SetupInterfaceRoute<span class="op">(</span>iface<span class="op">)</span>      <span class="co">// 4. routes + FIB rules + ruleset</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>telemetry<span class="op">.</span>Start<span class="op">(</span>ctx<span class="op">)</span>                   <span class="co">// 5. sampling</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>router<span class="op">.</span>Start<span class="op">(</span>ctx<span class="op">)</span>                     <span class="co">// 6. rule watcher</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>api<span class="op">.</span>NewServer<span class="op">(</span>sock<span class="op">,</span> daemon<span class="op">).</span>Start<span class="op">()</span>    <span class="co">// 7. expose</span></span></code></pre></div>
+<p>Step 3 before step 4 is mandatory: nftables resolves cgroup paths at
+load time (§5.1). Shutdown reverses the order and additionally waits for
+<code>classifier.Close()</code> before <code>engine.Teardown()</code>,
+so a BPF program cannot outlive the netns state it was attached to.</p>
+<p>The TUI is a pure function of a snapshot plus a cursor. No terminal
+state is mutated from <code>Update</code>; <code>View</code> renders a
+window of 15 rows and a 16-sample sparkline per PID:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>line <span class="op">:=</span> fmt<span class="op">.</span>Sprintf<span class="op">(</span><span class="st">&quot;%s %-7d %-24s %-12s %-8s %-11s %-11s %-10s %-12s&quot;</span><span class="op">,</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    cursor<span class="op">,</span> p<span class="op">.</span>PID<span class="op">,</span> truncate<span class="op">(</span>p<span class="op">.</span>Name<span class="op">,</span> <span class="dv">24</span><span class="op">),</span> truncate<span class="op">(</span>iface<span class="op">,</span> <span class="dv">12</span><span class="op">),</span> truncate<span class="op">(</span>policy<span class="op">,</span> <span class="dv">8</span><span class="op">),</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    telemetry<span class="op">.</span>FormatRate<span class="op">(</span>p<span class="op">.</span>RxRate<span class="op">),</span> telemetry<span class="op">.</span>FormatRate<span class="op">(</span>p<span class="op">.</span>TxRate<span class="op">),</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    telemetry<span class="op">.</span>FormatBytes<span class="op">(</span>p<span class="op">.</span>RxBytes<span class="op">+</span>p<span class="op">.</span>TxBytes<span class="op">),</span> sparkline<span class="op">(</span>m<span class="op">.</span>history<span class="op">[</span>p<span class="op">.</span>PID<span class="op">],</span> <span class="dv">12</span><span class="op">))</span></span></code></pre></div>
+<h2 id="phase-13-telemetry">4.8 Phase 13 — telemetry</h2>
+<p>Two independent sources are sampled and joined by PID.</p>
+<p><code>ParseSS</code> walks <code>ss -tinpH</code> output as records:
+a socket line starts a record, indented continuation lines carry
+<code>-i</code> counters. Loopback-to-loopback sockets are skipped so
+the numbers reflect uplink traffic; multiple PIDs on one socket (socket
+passing) all receive the counter.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// per socket: bytes_acked (delivered, excludes retransmits) and bytes_received</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _<span class="op">,</span> m <span class="op">:=</span> <span class="kw">range</span> pidPattern<span class="op">.</span>FindAllStringSubmatch<span class="op">(</span>line<span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">)</span> <span class="op">{</span> pids <span class="op">=</span> <span class="bu">append</span><span class="op">(</span>pids<span class="op">,</span> atoi<span class="op">(</span>m<span class="op">[</span><span class="dv">1</span><span class="op">]))</span> <span class="op">}</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> v <span class="op">:=</span> ackedPattern<span class="op">.</span>FindStringSubmatch<span class="op">(</span>line<span class="op">);</span> v <span class="op">!=</span> <span class="ot">nil</span> <span class="op">&amp;&amp;</span> n <span class="op">&gt;</span> tx <span class="op">{</span> tx <span class="op">=</span> n <span class="op">}</span></span></code></pre></div>
+<p>Rate derivation is monotonic by construction, because sockets
+disappear between samples:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> dRx<span class="op">,</span> dTx <span class="dt">uint64</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> cur<span class="op">.</span>Rx <span class="op">&gt;=</span> prev<span class="op">.</span>Rx <span class="op">{</span> dRx <span class="op">=</span> cur<span class="op">.</span>Rx <span class="op">-</span> prev<span class="op">.</span>Rx <span class="op">}</span>   <span class="co">// negative delta → rebase, not negative rate</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> cur<span class="op">.</span>Tx <span class="op">&gt;=</span> prev<span class="op">.</span>Tx <span class="op">{</span> dTx <span class="op">=</span> cur<span class="op">.</span>Tx <span class="op">-</span> prev<span class="op">.</span>Tx <span class="op">}</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>e<span class="op">.</span>procUsage<span class="op">[</span>pid<span class="op">]</span> <span class="op">=</span> usage<span class="op">.</span>Add<span class="op">(</span>dRx<span class="op">,</span> dTx<span class="op">)</span>            <span class="co">// cumulative never decreases</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>e<span class="op">.</span>procRate<span class="op">[</span>pid<span class="op">]</span>  <span class="op">=</span> Rate<span class="op">{</span>Rx<span class="op">:</span> <span class="dt">float64</span><span class="op">(</span>dRx<span class="op">)</span> <span class="op">/</span> elapsed<span class="op">,</span> Tx<span class="op">:</span> <span class="dt">float64</span><span class="op">(</span>dTx<span class="op">)</span> <span class="op">/</span> elapsed<span class="op">}</span></span></code></pre></div>
+<p>A closed socket therefore under-reports by at most one interval’s
+worth of bytes; it can never fabricate or double-count traffic.
+Cumulative usage for a terminal row is the sum over its process tree
+(<code>SubtreeUsage</code>), which is why <code>terminal (omp)</code>
+shows the sum of the agent and its tool subprocesses rather than
+zero.</p>
+<h2 id="phase-14-persistent-rules-and-the-auto-router">4.9 Phase 14 —
+persistent rules and the auto-router</h2>
+<p>Rules are matched on <strong><code>comm</code></strong> by default,
+which is the precise semantic for “the browser process group”: Firefox
+helpers share <code>argv[0]</code> but not <code>comm</code>, so a plain
+<code>firefox</code> rule matches one PID and the tree walk covers the
+rest. Two prefixes widen the match when needed:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Matches</th>
+<th>Use case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>firefox</code></td>
+<td>process name (<code>comm</code>)</td>
+<td>the process group root</td>
+</tr>
+<tr>
+<td><code>bin:firefox</code></td>
+<td><code>argv[0]</code> basename</td>
+<td>helpers that must be caught explicitly</td>
+</tr>
+<tr>
+<td><code>cmd:*-silent</code></td>
+<td>whole command line (<code>*</code> spans spaces)</td>
+<td>distinguishing invocations of one binary</td>
+</tr>
+</tbody>
+</table>
+<p>The watcher is idempotent per process lifetime:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> _<span class="op">,</span> done <span class="op">:=</span> handled<span class="op">[</span>pid<span class="op">];</span> done <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>rule<span class="op">,</span> ok <span class="op">:=</span> r<span class="op">.</span>store<span class="op">.</span>Match<span class="op">(</span>name<span class="op">,</span> cmdline<span class="op">)</span>          <span class="co">// comm + optional cmdline</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> r<span class="op">.</span>assigner<span class="op">.</span>Current<span class="op">(</span>pid<span class="op">)</span> <span class="op">==</span> rule<span class="op">.</span>Interface <span class="op">{</span>    <span class="co">// already correct → mark, don&#39;t write</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    r<span class="op">.</span>markHandled<span class="op">(</span>pid<span class="op">,</span> rule<span class="op">.</span>Interface<span class="op">);</span> <span class="cf">continue</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> err <span class="op">:=</span> r<span class="op">.</span>assigner<span class="op">.</span>Assign<span class="op">(</span>pid<span class="op">,</span> rule<span class="op">.</span>Interface<span class="op">);</span> err <span class="op">!=</span> <span class="ot">nil</span> <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span> <span class="co">// retry next tick</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>r<span class="op">.</span>markHandled<span class="op">(</span>pid<span class="op">,</span> rule<span class="op">.</span>Interface<span class="op">)</span></span></code></pre></div>
+<p><code>handled</code> is pruned against the live PID set, so PID reuse
+cannot suppress a future assignment. Mutating the store bumps a version
+counter; the watcher clears <code>handled</code> when it observes a new
+version, which is how an edited rule takes effect on an already-running
+process without a daemon restart.</p>
+<h2 id="phase-15-failover-and-the-kill-switch">4.10 Phase 15 — failover
+and the kill-switch</h2>
+<p>The decision logic is a pure function over an interface that the
+daemon implements:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> HandleLoss<span class="op">(</span>lost<span class="op">,</span> remaining <span class="op">[]</span><span class="dt">string</span><span class="op">,</span> m Mover<span class="op">)</span> <span class="op">[]</span>Action <span class="op">{</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    target <span class="op">:=</span> BestInterface<span class="op">(</span>remaining<span class="op">)</span>             <span class="co">// sorts by Priority, then name</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _<span class="op">,</span> iface <span class="op">:=</span> <span class="kw">range</span> lost <span class="op">{</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> _<span class="op">,</span> pid <span class="op">:=</span> <span class="kw">range</span> must<span class="op">(</span>m<span class="op">.</span>PIDs<span class="op">(</span>iface<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> m<span class="op">.</span>Policy<span class="op">(</span>pid<span class="op">)</span> <span class="op">==</span> types<span class="op">.</span>PolicyStrict <span class="op">{</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>                m<span class="op">.</span>Block<span class="op">(</span>pid<span class="op">,</span> iface<span class="op">)</span>                <span class="co">// quarantine; nftables/eBPF drops</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> target <span class="op">!=</span> <span class="st">&quot;&quot;</span> <span class="op">{</span> m<span class="op">.</span>Assign<span class="op">(</span>target<span class="op">,</span> pid<span class="op">)</span> <span class="op">}</span>   <span class="co">// failover</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>BestInterface</code> reuses the same priority function as
+default-route enforcement, so failover and steady-state preference can
+never disagree. Strict processes are tracked in
+<code>DaemonService.blocked</code>
+(<code>pid → original interface</code>) and restored by
+<code>restoreBlocked</code> as soon as the interface reappears; entries
+for dead PIDs are dropped on every pass, so the map cannot grow without
+bound.</p>
+<h2 id="phase-18-ebpf-classifier">4.11 Phase 18 — eBPF classifier</h2>
+<p>The kernel-side program is 20 lines and has one job:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> <span class="op">{</span> __uint<span class="op">(</span>type<span class="op">,</span> BPF_MAP_TYPE_HASH<span class="op">);</span> __uint<span class="op">(</span>max_entries<span class="op">,</span> <span class="dv">4096</span><span class="op">);</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>         __type<span class="op">(</span>key<span class="op">,</span> __u64<span class="op">);</span> __type<span class="op">(</span>value<span class="op">,</span> <span class="kw">struct</span> nw_target<span class="op">);</span> <span class="op">}</span> nw_targets SEC<span class="op">(</span><span class="st">&quot;.maps&quot;</span><span class="op">);</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>SEC<span class="op">(</span><span class="st">&quot;cgroup_skb/egress&quot;</span><span class="op">)</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> nw_mark<span class="op">(</span><span class="kw">struct</span> __sk_buff <span class="op">*</span>skb<span class="op">)</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    __u64 cgid <span class="op">=</span> bpf_get_current_cgroup_id<span class="op">();</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> nw_target <span class="op">*</span>t <span class="op">=</span> bpf_map_lookup_elem<span class="op">(&amp;</span>nw_targets<span class="op">,</span> <span class="op">&amp;</span>cgid<span class="op">);</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>t<span class="op">)</span> <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span>          <span class="co">// not managed → let the kernel route normally</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>t<span class="op">-&gt;</span>drop<span class="op">)</span> <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span>     <span class="co">// strict policy → drop</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    skb<span class="op">-&gt;</span>mark <span class="op">=</span> t<span class="op">-&gt;</span>mark<span class="op">;</span>       <span class="co">// table ID for the FIB</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The userspace side must map a <strong>path</strong> to the same
+identifier the helper returns. The kernfs inode of the cgroup directory
+is exactly that identifier:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> cgroupID<span class="op">(</span>path <span class="dt">string</span><span class="op">)</span> <span class="op">(</span><span class="dt">uint64</span><span class="op">,</span> <span class="dt">error</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    info<span class="op">,</span> err <span class="op">:=</span> os<span class="op">.</span>Stat<span class="op">(</span>path<span class="op">)</span>                  <span class="co">// e.g. /sys/fs/cgroup/netweaver/wlan0</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    st <span class="op">:=</span> info<span class="op">.</span>Sys<span class="op">().(*</span>syscall<span class="op">.</span>Stat_t<span class="op">)</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> st<span class="op">.</span>Ino<span class="op">,</span> <span class="ot">nil</span>                          <span class="co">// == bpf_get_current_cgroup_id()</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Reconciliation is a diff, which makes repeated calls safe and lets
+interface hotplug drive it:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name<span class="op">,</span> l <span class="op">:=</span> <span class="kw">range</span> c<span class="op">.</span>links <span class="op">{</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> _<span class="op">,</span> keep <span class="op">:=</span> desired<span class="op">[</span>name<span class="op">];</span> <span class="op">!</span>keep <span class="op">{</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>        l<span class="op">.</span><span class="bu">close</span><span class="op">()</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>        <span class="bu">delete</span><span class="op">(</span>c<span class="op">.</span>links<span class="op">,</span> name<span class="op">)</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name<span class="op">,</span> t <span class="op">:=</span> <span class="kw">range</span> desired <span class="op">{</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    id<span class="op">,</span> err <span class="op">:=</span> c<span class="op">.</span>cgroupIDFn<span class="op">(</span>path<span class="op">);</span> <span class="cf">if</span> err <span class="op">!=</span> <span class="ot">nil</span> <span class="op">{</span> <span class="cf">continue</span> <span class="op">}</span>   <span class="co">// cgroup not created yet</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    c<span class="op">.</span>putFn<span class="op">(</span>id<span class="op">,</span> t<span class="op">)</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> _<span class="op">,</span> attached <span class="op">:=</span> c<span class="op">.</span>links<span class="op">[</span>name<span class="op">];</span> <span class="op">!</span>attached <span class="op">{</span> c<span class="op">.</span>links<span class="op">[</span>name<span class="op">]</span> <span class="op">=</span> c<span class="op">.</span>attachFn<span class="op">(</span>path<span class="op">)</span> <span class="op">}</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="phase-17-dashboard">4.12 Phase 17 — dashboard</h2>
+<p>The dashboard is a proxy, not a second daemon:
+<code>internal/web/server.go</code> holds one <code>api.Client</code>
+and exposes five endpoints. State is a single document so the page
+renders it atomically:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> stateResponse <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    Interfaces <span class="op">[]</span>types<span class="op">.</span>InterfaceInfo <span class="st">`json:&quot;interfaces&quot;`</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    Processes  <span class="op">[]</span>types<span class="op">.</span>ProcessInfo   <span class="st">`json:&quot;processes&quot;`</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    Rules      <span class="op">[]</span>types<span class="op">.</span>Rule          <span class="st">`json:&quot;rules&quot;`</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    Policy     <span class="dt">string</span>                <span class="st">`json:&quot;policy&quot;`</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Mutations accept at most 4 KiB (<code>http.MaxBytesReader</code>),
+validate required fields, and map daemon errors to <code>502</code>
+while client errors map to <code>400</code>. The page polls every 1.5 s
+but <strong>skips re-render while a form control has focus</strong>,
+which prevents a select box from being yanked out from under the cursor
+mid-interaction.</p>
+<h1 id="engineering-challenges-trade-offs-optimizations">5. Engineering
+Challenges, Trade-offs &amp; Optimizations</h1>
+<h2 id="nftables-rejects-the-entire-ruleset-when-one-cgroup-path-is-missing">5.1
+nftables rejects the entire ruleset when one cgroup path is missing</h2>
+<p><strong>Symptom.</strong> Marking silently stopped working while
+<code>ip rule</code> still looked correct.</p>
+<p><strong>Root cause.</strong> <code>nft</code> resolves
+<code>socket cgroupv2 level N &quot;path&quot;</code> <strong>at load
+time</strong> and aborts the whole transaction if any path does not
+exist:</p>
+<pre><code>Error: Could not parse cgroupsv2 path
+        socket cgroupv2 level 2 &quot;netweaver/blocked&quot; drop</code></pre>
+<p>The daemon applied the ruleset for every interface it had ever seen,
+including ones whose cgroup directory had not been created yet, and
+discarded the error (<code>_ = engine…</code>).</p>
+<p><strong>Fix (commit <code>b3bd517</code>).</strong> Render only rules
+whose cgroup exists, and surface skips:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _<span class="op">,</span> iface <span class="op">:=</span> <span class="kw">range</span> list <span class="op">{</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">!</span>e<span class="op">.</span>CgroupPathExists<span class="op">(</span>iface<span class="op">.</span>Name<span class="op">)</span> <span class="op">{</span> skipped <span class="op">=</span> <span class="bu">append</span><span class="op">(</span>skipped<span class="op">,</span> iface<span class="op">.</span>Name<span class="op">);</span> <span class="cf">continue</span> <span class="op">}</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    kept <span class="op">=</span> <span class="bu">append</span><span class="op">(</span>kept<span class="op">,</span> iface<span class="op">)</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> renderRuleset<span class="op">(</span>rulesetData<span class="op">{</span>Ifaces<span class="op">:</span> kept<span class="op">,</span> Marking<span class="op">:</span> e<span class="op">.</span>marking<span class="op">,</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    Blocked<span class="op">:</span> e<span class="op">.</span>CgroupPathExists<span class="op">(</span>cgroups<span class="op">.</span>BlockedCgroup<span class="op">)}),</span> skipped</span></code></pre></div>
+<p>The apply error now names the skipped groups, and the daemon logs
+route-setup failures instead of discarding them. Verified in a user
+netns with two veth uplinks: the ruleset loads,
+<code>ip route get 8.8.8.8 mark 0x105</code> selects <code>veth1</code>
+table 261, unmarked traffic follows <code>veth0</code>.</p>
+<p><strong>Trade-off.</strong> Filtering at render time means a rule can
+lag one discovery cycle behind cgroup creation; the startup order
+(ensure cgroup → apply rules) plus the 2 s watcher makes that window
+unobservable in practice.</p>
+<h2 id="ipv6-leaks-through-the-only-interface-that-has-ipv6">5.2 IPv6
+leaks through the only interface that has IPv6</h2>
+<p><strong>Symptom.</strong> Two terminals assigned to different
+interfaces reported the <em>same</em> public IP. The IPv6-only lookup
+(<code>curl -6</code>) always returned the phone’s address.</p>
+<p><strong>Root cause.</strong> Two independent defects: policy routing
+was installed for IPv4 only, and Wi-Fi had no global IPv6 default route,
+so any v6 socket fell through to the single v6-capable uplink regardless
+of cgroup.</p>
+<p><strong>Fix (commit <code>f3194ac</code>).</strong> Mirror every v4
+object for v6 and make absence explicit:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> info<span class="op">.</span>Gateway6 <span class="op">!=</span> <span class="st">&quot;&quot;</span> <span class="op">{</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    ip <span class="op">-</span><span class="dv">6</span> route replace <span class="cf">default</span> via <span class="op">&lt;</span>GW6<span class="op">&gt;</span> dev <span class="op">&lt;</span>IFACE<span class="op">&gt;</span> table <span class="op">&lt;</span>TID<span class="op">&gt;</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    ip <span class="op">-</span><span class="dv">6</span> route replace unreachable <span class="cf">default</span> table <span class="op">&lt;</span>TID<span class="op">&gt;</span>   <span class="co">// fail fast, do not leak</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>ip <span class="op">-</span><span class="dv">6</span> rule add fwmark <span class="bn">0x</span><span class="op">&lt;</span>TID<span class="op">&gt;</span> table <span class="op">&lt;</span>TID<span class="op">&gt;</span> priority <span class="dv">1000</span></span></code></pre></div>
+<p>An <code>unreachable</code> default is the correct semantic: the
+application gets <code>ENETUNREACH</code> and falls back to IPv4 on the
+<em>intended</em> link. Silently using another link is worse than
+failing, and for VPN/torrent use it is a privacy bug.</p>
+<h2 id="route-metrics-silently-hijacked-the-system-default">5.3 Route
+metrics silently hijacked the system default</h2>
+<p>USB tethering arrived with metric 100, Wi-Fi with 600, so plugging in
+a phone redirected all unmarked traffic to cellular. The fix is a
+deterministic precedence table (<code>Priority</code>: 50/100/700)
+applied with <code>ip route replace … metric N</code> on every discovery
+pass. Because the same function picks failover targets, preference and
+recovery cannot diverge.</p>
+<h2 id="terminal-rows-showed-zero-traffic">5.4 Terminal rows showed zero
+traffic</h2>
+<p><strong>Cause.</strong> The scanner collapses a browser or shell tree
+into its root PID, but sockets belong to children (<code>omp</code>
+under a <code>zsh</code>, renderers under <code>firefox</code>). Summing
+only the root PID’s counters produced zeros.</p>
+<p><strong>Fix.</strong> <code>ListProcesses</code> resolves the tree
+per row and aggregates:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>pids<span class="op">,</span> _ <span class="op">:=</span> d<span class="op">.</span>scanner<span class="op">.</span>GetProcessTree<span class="op">(</span>procs<span class="op">[</span>i<span class="op">].</span>PID<span class="op">)</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>usage<span class="op">,</span> rate <span class="op">:=</span> d<span class="op">.</span>telemetry<span class="op">.</span>SubtreeUsage<span class="op">(</span>pids<span class="op">)</span></span></code></pre></div>
+<p>Cost: one recursive <code>Children()</code> walk per displayed row
+per request (≈10 rows), which is negligible next to the <code>ss</code>
+spawn itself.</p>
+<h2 id="counter-resets-between-samples">5.5 Counter resets between
+samples</h2>
+<p>Sockets close, so the per-PID sum can <em>decrease</em> between
+ticks. A naive <code>cur - prev</code> would emit a negative rate and a
+decreasing cumulative total. The engine clamps negative deltas to zero
+and rebases the previous snapshot, so usage is monotonically
+non-decreasing and a closed socket costs at most one interval of
+accuracy.</p>
+<h2 id="per-application-numbers-are-tcp-only">5.6 Per-application
+numbers are TCP-only</h2>
+<p><code>ss</code> exposes byte counters for TCP sockets
+(<code>bytes_acked</code>, <code>bytes_received</code>) but not for UDP,
+so QUIC/HTTP-3 traffic is invisible at the application level while still
+counted at the interface level (sysfs). This is documented rather than
+papered over:</p>
+<ul>
+<li>interface cards show exact, protocol-agnostic totals;</li>
+<li>per-app columns are labelled internally as socket-derived and can be
+zero while the interface rate is non-zero;</li>
+<li>the accurate fix (per-cgroup byte counting in eBPF) is defined but
+not implemented.</li>
+</ul>
+<p>An attempted alternative — deriving per-app shares from interface
+counters — was rejected as fabrication.</p>
+<h2 id="kill-switch-correctness">5.7 Kill-switch correctness</h2>
+<p>A strict policy must <strong>fail closed</strong>. Two mechanisms
+guarantee it:</p>
+<ol type="1">
+<li>The quarantine cgroup is the <em>first</em> rule in the output
+chain, before any marking rule, so a marked packet cannot escape by
+matching a later rule.</li>
+<li>The eBPF program returns <code>0</code> for <code>drop</code>
+targets, which drops in the send path before the FIB is consulted at
+all.</li>
+</ol>
+<p>Processes are released only when their original interface is present
+<strong>and</strong> the write to the target <code>cgroup.procs</code>
+succeeds; failed releases stay in the map and are retried on the next
+discovery pass.</p>
+<h2 id="security-posture-of-a-root-daemon">5.8 Security posture of a
+root daemon</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arbitrary interface names reaching <code>exec.Command</code></td>
+<td><code>validIfaceRegex = ^[a-zA-Z0-9_.-]{1,16}$</code> validated in
+<code>InterfaceCgroupPath</code> and
+<code>InterfaceInfo.Validate</code></td>
+</tr>
+<tr>
+<td>Shell injection</td>
+<td>every command is <code>exec.Command(name, args…)</code>; no shell is
+spawned</td>
+</tr>
+<tr>
+<td>Moving critical processes</td>
+<td>PID ≤ 100 refused in <code>AssignPID</code> <strong>and</strong>
+<code>GetProcessTree</code></td>
+</tr>
+<tr>
+<td>Unprivileged socket abuse</td>
+<td>operations are limited to process→interface binding, system PIDs are
+refused, and the socket is local-only</td>
+</tr>
+<tr>
+<td>Dashboard exposed to the network</td>
+<td>binds <code>127.0.0.1:8088</code> by default; non-loopback is opt-in
+via <code>-addr</code></td>
+</tr>
+<tr>
+<td>BPF map growth</td>
+<td>hash map capped at 4096 entries; links are closed on interface
+removal and shutdown</td>
+</tr>
+<tr>
+<td>Stale state after crash</td>
+<td><code>InitHierarchy</code> migrates every managed PID back to the
+root cgroup on start; <code>KillMode=process</code> prevents systemd
+from killing unrelated children</td>
+</tr>
+</tbody>
+</table>
+<h2 id="performance-characteristics">5.9 Performance
+characteristics</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Hot path</th>
+<th>Cost</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Telemetry tick</td>
+<td>1 × <code>ss -tinpH</code> + sysfs reads</td>
+<td><code>ss</code> spawn dominates (single-digit ms); parsing is
+O(sockets)</td>
+</tr>
+<tr>
+<td>Interface watch</td>
+<td>2 × <code>ip route show</code> + sysfs stat per NIC</td>
+<td>skips nftables re-apply when gateway/IP/table are unchanged</td>
+</tr>
+<tr>
+<td>Auto-router tick</td>
+<td>O(PIDs) reads of
+<code>comm</code>/<code>status</code>/<code>cmdline</code></td>
+<td><code>/proc</code> direct, no gopsutil allocation</td>
+</tr>
+<tr>
+<td>TUI refresh</td>
+<td>1 API round trip/s</td>
+<td>JSON snapshot ≈ 1–2 KiB</td>
+</tr>
+<tr>
+<td>Dashboard refresh</td>
+<td>1 HTTP request/1.5 s</td>
+<td>skipped while a control is focused</td>
+</tr>
+<tr>
+<td>Assignment</td>
+<td>1 <code>cgroup.procs</code> write (+ tree walk)</td>
+<td>no rule changes required</td>
+</tr>
+</tbody>
+</table>
+<p>Deliberate non-optimizations: no caching of <code>ip rule</code>
+output (kernel is authoritative), no batching of cgroup writes (process
+counts are small), no incremental ruleset patching (regeneration is a
+few hundred bytes over a local socket).</p>
+<h2 id="observability-gaps-known">5.10 Observability gaps (known)</h2>
+<p>There is no metrics endpoint and no persistent audit log of
+assignments. The daemon logs lifecycle events (<code>auto-routed</code>,
+<code>failover</code>, <code>kill-switch</code>, <code>released</code>)
+to stdout/journald only. A structured event stream is the natural next
+addition, and the <code>api.Broadcast</code>-style seam does not exist
+yet — clients poll.</p>
+<h1 id="reproduction-setup-deployment-guide">6. Reproduction, Setup
+&amp; Deployment Guide</h1>
+<h2 id="prerequisites">6.1 Prerequisites</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Check</th>
+<th>Install (Arch)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linux with cgroups v2</td>
+<td><code>stat -fc %T /sys/fs/cgroup</code> →
+<code>cgroup2fs</code></td>
+<td>enabled by default</td>
+</tr>
+<tr>
+<td>Go ≥ 1.22</td>
+<td><code>go version</code></td>
+<td><code>pacman -S go</code></td>
+</tr>
+<tr>
+<td><code>nftables</code></td>
+<td><code>nft --version</code></td>
+<td><code>pacman -S nftables</code></td>
+</tr>
+<tr>
+<td><code>iproute2</code> (incl. <code>ss</code>)</td>
+<td><code>ss -V</code></td>
+<td><code>pacman -S iproute2</code></td>
+</tr>
+<tr>
+<td><code>bpftool</code> (verification only)</td>
+<td><code>bpftool version</code></td>
+<td><code>pacman -S bpf</code></td>
+</tr>
+<tr>
+<td><code>clang</code> (only to regenerate BPF)</td>
+<td><code>clang --version</code></td>
+<td><code>pacman -S clang</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="environment-variables">6.2 Environment variables</h2>
+<p>The daemon reads the environment directly (no <code>.env</code>
+loader). A systemd drop-in or shell export is the supported
+mechanism:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># /etc/netweaver/netweaver.env  — consumed via EnvironmentFile= or `set -a; . file`</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Socket path shared by daemon and clients (client-side override is the useful one)</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="va">NETWEAVER_SOCK</span><span class="op">=</span>/run/netweaver/netweaver.sock</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Persistent auto-routing rules (JSON, created on first write)</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="va">NETWEAVER_RULES</span><span class="op">=</span>/etc/netweaver/rules.json</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Global default policy: failover | strict</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="va">NETWEAVER_SETTINGS</span><span class="op">=</span>/etc/netweaver/settings.json</span></code></pre></div>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Applies to</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NETWEAVER_SOCK</code></td>
+<td><code>/run/netweaver/netweaver.sock</code></td>
+<td>client</td>
+<td>alternate daemon / test harness</td>
+</tr>
+<tr>
+<td><code>NETWEAVER_RULES</code></td>
+<td><code>/etc/netweaver/rules.json</code></td>
+<td>daemon</td>
+<td>rule store location</td>
+</tr>
+<tr>
+<td><code>NETWEAVER_SETTINGS</code></td>
+<td><code>/etc/netweaver/settings.json</code></td>
+<td>daemon</td>
+<td>default-policy file</td>
+</tr>
+</tbody>
+</table>
+<h2 id="build-and-test">6.3 Build and test</h2>
+<div class="sourceCode" id="cb27"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/ronakgupta03/netweaver</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> netweaver</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> build          <span class="co"># bin/netweaverd, bin/netweaver</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> test           <span class="co"># 14 packages, 41 test functions</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> bpf            <span class="co"># optional: regenerate internal/classifier/netweaver_bpfel.o</span></span></code></pre></div>
+<p><code>make bpf</code> is the only step requiring <code>clang</code>;
+the compiled object is committed so a clean checkout builds offline with
+Go alone.</p>
+<h2 id="run-development-three-terminals">6.4 Run (development, three
+terminals)</h2>
+<div class="sourceCode" id="cb28"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Terminal 1 — root daemon (foreground by design; it is a server)</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> ./bin/netweaverd</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Terminal 2 — interactive dashboard</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Terminal 3 — web dashboard (optional)</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> web <span class="at">--open</span></span></code></pre></div>
+<p>Expected daemon startup:</p>
+<pre><code>[netweaverd] Discovered interface: wlan0 (table 260)
+[netweaverd] Discovered interface: enp5s0f4u2 (table 265)
+[netweaverd] eBPF classifier active (cgroup_skb/egress marking)
+[netweaverd] Listening on /run/netweaver/netweaver.sock</code></pre>
+<p>If BPF is unavailable the line becomes
+<code>eBPF classifier unavailable, using nftables marking: …</code> and
+operation continues.</p>
+<h2 id="operational-commands">6.5 Operational commands</h2>
+<div class="sourceCode" id="cb30"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> interfaces                 <span class="co"># adapters, IPs, gateways, tables, rates</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> list                       <span class="co"># apps + interface + policy + rates + usage</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> assign 1725 wlan0          <span class="co"># bind a PID (and its children)</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> reset 1725                 <span class="co"># back to the default route</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> run <span class="at">-i</span> wlan0 firefox       <span class="co"># spawn already routed</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> rules add firefox wlan0 strict</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> rules add <span class="st">&#39;steam*&#39;</span> eno1</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> rules list</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> rules remove firefox</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> rules clear</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> policy                     <span class="co"># show default policy</span></span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> policy set strict</span></code></pre></div>
+<h2 id="deployment-as-a-systemd-service">6.6 Deployment as a systemd
+service</h2>
+<div class="sourceCode" id="cb31"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> install <span class="at">-m</span> 0755 bin/netweaverd /usr/local/bin/netweaverd</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> install <span class="at">-m</span> 0755 bin/netweaver  /usr/local/bin/netweaver</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> install <span class="at">-d</span> /etc/netweaver</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> cp scripts/netweaver.service /etc/systemd/system/netweaver.service</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl daemon-reload</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl enable <span class="at">--now</span> netweaver</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a><span class="ex">journalctl</span> <span class="at">-u</span> netweaver <span class="at">-f</span></span></code></pre></div>
+<p>The unit uses <code>KillMode=process</code>, so stopping the service
+does not signal the applications it manages; the daemon’s own shutdown
+path returns every PID to the root cgroup and removes its nftables
+table, routes and FIB rules.</p>
+<h2 id="verification-recipes">6.7 Verification recipes</h2>
+<p><strong>Routing (no root beyond the daemon):</strong></p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ip</span> rule show                       <span class="co"># fwmark 0x104 lookup 260, priority 1000</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ip</span> route show table all            <span class="co"># per-interface defaults</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> nft list ruleset              <span class="co"># marking only when nftables mode is active</span></span></code></pre></div>
+<p><strong>Per-application egress:</strong></p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> assign <span class="op">&lt;</span>pid-A<span class="op">&gt;</span> wlan0</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/netweaver</span> assign <span class="op">&lt;</span>pid-B<span class="op">&gt;</span> enp5s0f4u2</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="co"># in A: curl -4 https://api.ipify.org   → Wi-Fi public IP</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="co"># in B: curl -4 https://api.ipify.org   → tethering public IP (different)</span></span></code></pre></div>
+<p><strong>Two uplinks without hardware:</strong></p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> scripts/setup-veth-test.sh</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="co"># create, assign, and verify two veth pairs; teardown with:</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> scripts/teardown-veth-test.sh</span></code></pre></div>
+<p><strong>eBPF classifier on the kernel:</strong></p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> scripts/verify-ebpf.sh</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="co"># asserts: nw_mark attached per cgroup, nw_targets map contents,</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="co">#          routing state, and clean teardown (no leftover nftables table)</span></span></code></pre></div>
+<p><strong>Test suite:</strong></p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="ex">go</span> test ./...                       <span class="co"># unit + integration (UDS, HTTP, reconciliation)</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="ex">go</span> test ./internal/routing/ <span class="at">-run</span> Nft <span class="at">-v</span></span></code></pre></div>
+<h2 id="troubleshooting">6.8 Troubleshooting</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>netweaverd must run as root</code></td>
+<td>daemon started unprivileged</td>
+<td><code>sudo</code></td>
+</tr>
+<tr>
+<td><code>failed connecting to daemon at …sock</code></td>
+<td>daemon not running or crashed</td>
+<td>start it; check journal</td>
+</tr>
+<tr>
+<td><code>nft apply failed …</code></td>
+<td><code>nft</code> missing or no writable cgroup dirs</td>
+<td>install nftables; check <code>/sys/fs/cgroup/netweaver</code></td>
+</tr>
+<tr>
+<td>app rates <code>0 B/s</code> while interface moves</td>
+<td>UDP/QUIC only, or <code>ss</code> missing</td>
+<td>install iproute2; read interface totals</td>
+</tr>
+<tr>
+<td><code>eBPF classifier unavailable</code></td>
+<td>no CAP_BPF / kernel support</td>
+<td>expected: nftables marking is used</td>
+</tr>
+<tr>
+<td>interface missing from list</td>
+<td>no carrier (cable/AP down) or no IPv4 address</td>
+<td>fix link; discovery filters carrier-less NICs</td>
+</tr>
+<tr>
+<td>assignment appears to revert</td>
+<td>rule matches the app and re-applies at its version change</td>
+<td>remove/adjust the rule</td>
+</tr>
+<tr>
+<td>dashboard unreachable</td>
+<td>bound to loopback only</td>
+<td><code>netweaver web --addr 0.0.0.0:8088</code> (explicit
+opt-in)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="uninstall-cleanup">6.9 Uninstall / cleanup</h2>
+<div class="sourceCode" id="cb37"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl disable <span class="at">--now</span> netweaver</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> rm /etc/systemd/system/netweaver.service</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> rm <span class="at">-rf</span> /etc/netweaver</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> rm <span class="at">-f</span> /usr/local/bin/netweaverd /usr/local/bin/netweaver</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="co"># daemon shutdown already removed: nftables table, FIB rules, routing tables, cgroups</span></span></code></pre></div>
+<h1 id="appendix-a-verification-matrix">Appendix A — Verification
+matrix</h1>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Area</th>
+<th>Evidence produced during development</th>
+<th>Requires root</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Telemetry parsing</td>
+<td>fixture test (loopback skipped, multi-PID attribution)</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Telemetry live</td>
+<td><code>ss</code> + sysfs probe: firefox 307 KiB/s, 4.1 MiB total;
+wlan0 322 KiB/s</td>
+<td>no</td>
+</tr>
+<tr>
+<td>TUI rendering</td>
+<td>pty capture of live rates, totals, sparklines, policy column</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Rules store</td>
+<td>persistence, atomic write, glob/prefix matching, version bump</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Auto-router</td>
+<td>real <code>/proc</code> scan matched only PID 1725; spawned
+<code>sleep</code> attached in one cycle</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Policy</td>
+<td>settings round-trip, precedence (explicit &gt; rule &gt;
+default)</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Failover engine</td>
+<td>strict blocks, failover picks <code>eno1</code>, no-survivor leaves
+in place</td>
+<td>no</td>
+</tr>
+<tr>
+<td>PBR + ruleset</td>
+<td>user netns, two veth uplinks, <code>ip route get … mark</code>
+selects correct table; removal cleans only the lost interface</td>
+<td>netns root only</td>
+</tr>
+<tr>
+<td>nftables path filtering</td>
+<td>unit test: missing cgroup omitted, blocked rule gated</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Dashboard</td>
+<td>browser session: add/delete rule, assign app, policy toggle, state
+polling</td>
+<td>no</td>
+</tr>
+<tr>
+<td>eBPF object</td>
+<td>parses as <code>CGroupSKB</code> / egress, 8-byte map value</td>
+<td>no</td>
+</tr>
+<tr>
+<td>eBPF attach/map</td>
+<td>injectable attach/map tests; EPERM path triggers documented
+fallback</td>
+<td>load requires root</td>
+</tr>
+<tr>
+<td>eBPF on kernel</td>
+<td><code>scripts/verify-ebpf.sh</code> (attach, map dump,
+teardown)</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<h1 id="appendix-b-commit-chronology">Appendix B — Commit
+chronology</h1>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Commit</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>47fa08d</code>, <code>53b484d</code></td>
+<td>design specification, implementation plan</td>
+</tr>
+<tr>
+<td><code>fab4547</code> … <code>4db0da9</code></td>
+<td>models, cgroups, routing, discovery, scanner, IPC, daemon, CLI,
+TUI</td>
+</tr>
+<tr>
+<td><code>c702813</code>, <code>78c356c</code>, <code>cf39d95</code>,
+<code>8b780fb</code>, <code>0edc636</code>, <code>363b122</code></td>
+<td>netns harness, review fixes, carrier filtering, app surfacing,
+terminal naming, dedup</td>
+</tr>
+<tr>
+<td><code>f3194ac</code></td>
+<td>priority hierarchy + IPv6 leak prevention</td>
+</tr>
+<tr>
+<td><code>4a1461f</code>, <code>ce93d8a</code>,
+<code>30ff2e6</code></td>
+<td>telemetry, rules, policies</td>
+</tr>
+<tr>
+<td><code>b3bd517</code></td>
+<td>nftables cgroup-path filtering fix</td>
+</tr>
+<tr>
+<td><code>535c7e5</code>, <code>9013fe6</code>,
+<code>5cbd6a3</code></td>
+<td>web dashboard, eBPF classifier, classifier tests + verify
+script</td>
+</tr>
+</tbody>
+</table>
+<h1 id="appendix-c-glossary">Appendix C — Glossary</h1>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PBR</strong></td>
+<td>policy-based routing: route selection driven by <code>ip rule</code>
+(here, by fwmark)</td>
+</tr>
+<tr>
+<td><strong>fwmark</strong></td>
+<td>32-bit mark on a packet/socket consulted by
+<code>ip rule</code></td>
+</tr>
+<tr>
+<td><strong>cgroup v2</strong></td>
+<td>unified Linux control-group hierarchy
+(<code>/sys/fs/cgroup</code>)</td>
+</tr>
+<tr>
+<td><strong>kernfs inode</strong></td>
+<td>inode number of a cgroup directory; equals
+<code>bpf_get_current_cgroup_id()</code></td>
+</tr>
+<tr>
+<td><strong>mangle / srcnat</strong></td>
+<td>netfilter hook priorities: mark before routing, NAT after</td>
+</tr>
+<tr>
+<td><strong>failover / strict</strong></td>
+<td>policy for a vanished interface: relocate traffic, or block it</td>
+</tr>
+<tr>
+<td><strong>quarantine cgroup</strong></td>
+<td><code>netweaver/blocked</code>, whose packets are dropped</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>
