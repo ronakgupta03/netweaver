@@ -157,12 +157,20 @@ Rule-specific policy overrides the global default; explicit assignments capture 
 
 ## Demonstration for College Evaluation / Viva
 
+0. **Verify the eBPF classifier on the live kernel (root)**
+   ```bash
+   sudo ./scripts/verify-ebpf.sh
+   ```
+   Loads the daemon, confirms `nw_mark` is attached to every interface cgroup,
+   dumps the mark map, and checks that shutdown removes the nftables table.
+
 1. **Show the routing state**
    ```bash
    ip rule show
    ip route show table all
    sudo nft list ruleset
-   sudo bpftool prog show          # eBPF classifier, when active
+   sudo bpftool prog show            # eBPF classifier, when active
+   sudo bpftool map dump name nw_targets
    ```
 
 2. **Two uplinks without physical cables**

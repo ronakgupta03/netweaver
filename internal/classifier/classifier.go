@@ -34,19 +34,50 @@ type target struct {
 	Drop uint32
 }
 
+// attachment is the internal handle for one cgroup program attachment.
+type attachment struct {
+	closeFn func() error
+}
+
+func (a attachment) close() error {
+	if a.closeFn == nil {
+		return nil
+	}
+	return a.closeFn()
+}
+
 type Classifier struct {
 	mu         sync.Mutex
 	objs       bpfObjects
 	cgroupRoot string
-	links      map[string]link.Link
+	links      map[string]attachment
 	loaded     bool
+
+	// Injected for tests; production values talk to the kernel.
+	putFn      func(key, value any) error
+	attachFn   func(path string) (attachment, error)
+	cgroupIDFn func(path string) (uint64, error)
 }
 
 func New(cgroupRoot string) *Classifier {
-	return &Classifier{
+	c := &Classifier{
 		cgroupRoot: cgroupRoot,
-		links:      make(map[string]link.Link),
+		links:      make(map[string]attachment),
 	}
+	c.putFn = func(key, value any) error { return c.objs.Targets.Put(key, value) }
+	c.attachFn = func(path string) (attachment, error) {
+		l, err := link.AttachCgroup(link.CgroupOptions{
+			Path:    path,
+			Attach:  ebpf.AttachCGroupInetEgress,
+			Program: c.objs.Mark,
+		})
+		if err != nil {
+			return attachment{}, err
+		}
+		return attachment{closeFn: l.Close}, nil
+	}
+	c.cgroupIDFn = cgroupID
+	return c
 }
 
 // Spec parses the embedded object without touching the kernel. Used by tests
@@ -97,31 +128,27 @@ func (c *Classifier) Apply(ifaces []types.InterfaceInfo) error {
 		if _, keep := desired[name]; keep {
 			continue
 		}
-		_ = l.Close()
+		_ = l.close()
 		delete(c.links, name)
 	}
 
 	for name, t := range desired {
 		path := filepath.Join(c.cgroupRoot, "netweaver", name)
-		id, err := cgroupID(path)
+		id, err := c.cgroupIDFn(path)
 		if err != nil {
 			continue // cgroup not created yet
 		}
-		if err := c.objs.Targets.Put(id, t); err != nil {
+		if err := c.putFn(id, t); err != nil {
 			return fmt.Errorf("updating BPF map for %s: %w", name, err)
 		}
 		if _, attached := c.links[name]; attached {
 			continue
 		}
-		l, err := link.AttachCgroup(link.CgroupOptions{
-			Path:    path,
-			Attach:  ebpf.AttachCGroupInetEgress,
-			Program: c.objs.Mark,
-		})
+		att, err := c.attachFn(path)
 		if err != nil {
 			return fmt.Errorf("attaching BPF program to %s: %w", name, err)
 		}
-		c.links[name] = l
+		c.links[name] = att
 	}
 	return nil
 }
@@ -131,7 +158,7 @@ func (c *Classifier) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for name, l := range c.links {
-		_ = l.Close()
+		_ = l.close()
 		delete(c.links, name)
 	}
 	if !c.loaded {
