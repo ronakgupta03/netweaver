@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NetWeaver Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1d212b;
+    --border: #2a2f3a;
+    --fg: #e6e8ee;
+    --muted: #8b93a7;
+    --accent: #7d56f4;
+    --ok: #34d399;
+    --warn: #fbbf24;
+    --err: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--panel);
+  }
+  h1 { font-size: 16px; margin: 0; letter-spacing: .2px; }
+  h1 span { color: var(--accent); }
+  .spacer { flex: 1; }
+  .status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--err); }
+  .dot.up { background: var(--ok); }
+  main { padding: 20px 24px 48px; max-width: 1180px; margin: 0 auto; }
+  section { margin-bottom: 28px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 10px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+  }
+  .card .name { font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; }
+  .card .ip { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .rates { display: flex; gap: 18px; margin-top: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .rates b { color: var(--ok); font-weight: 600; }
+  .rates .up b { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  thead th {
+    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--panel-2);
+  }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid #22262f; vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #1a1e27; }
+  .num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: nowrap; }
+  .muted { color: var(--muted); }
+  select, input, button {
+    font: inherit; color: var(--fg); background: var(--panel-2);
+    border: 1px solid var(--border); border-radius: 7px; padding: 5px 8px;
+  }
+  select:focus, input:focus, button:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.ghost { background: transparent; }
+  button.danger { color: var(--err); }
+  .badge {
+    display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px;
+    border: 1px solid var(--border); color: var(--muted);
+  }
+  .badge.strict { color: var(--err); border-color: #4b2530; background: #241820; }
+  .badge.failover { color: var(--ok); border-color: #1e4034; background: #16241d; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg button { border: none; border-radius: 0; background: transparent; color: var(--muted); padding: 5px 12px; }
+  .seg button.active { background: var(--accent); color: #fff; }
+  .ruleform { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .ruleform input { min-width: 200px; }
+  .toast {
+    position: fixed; right: 20px; bottom: 20px; background: var(--panel-2);
+    border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    padding: 10px 14px; border-radius: 8px; max-width: 380px; font-size: 13px;
+    opacity: 0; transform: translateY(8px); transition: .18s ease; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { border-left-color: var(--err); }
+  .empty { color: var(--muted); padding: 16px 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Net<span>Weaver</span> Dashboard</h1>
+  <div class="status"><span id="dot" class="dot"></span><span id="status">connecting…</span></div>
+  <div class="spacer"></div>
+  <div class="seg" id="policySeg">
+    <button data-policy="failover">failover</button>
+    <button data-policy="strict">strict</button>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>Interfaces</h2>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section>
+    <h2>Applications</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>PID</th><th>Application</th><th>Interface</th><th>Policy</th>
+          <th>Down</th><th>Up</th><th>Used</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="apps"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Auto-routing rules</h2>
+    <table>
+      <thead><tr><th>Match</th><th>Interface</th><th>Policy</th><th></th></tr></thead>
+      <tbody id="rules"></tbody>
+    </table>
+    <div class="ruleform">
+      <input id="ruleMatch" placeholder="process name, e.g. firefox or steam*" />
+      <select id="ruleIface"></select>
+      <select id="rulePolicy">
+        <option value="failover">failover</option>
+        <option value="strict">strict</option>
+      </select>
+      <button class="primary" id="ruleAdd">Add rule</button>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const state = { interfaces: [], processes: [], rules: [], policy: "failover" };
+const $ = (id) => document.getElementById(id);
+let lastRender = "";
+let toastTimer = null;
+
+function showToast(msg, isError) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.className = "toast show" + (isError ? " error" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = "toast"; }, 3500);
+}
+
+function fmtBytes(v) {
+  if (!v) return "0 B";
+  const u = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let i = 0, f = v;
+  while (f >= 1024 && i < u.length - 1) { f /= 1024; i++; }
+  return (i === 0 ? f.toFixed(0) : f.toFixed(f >= 100 ? 0 : 1)) + " " + u[i];
+}
+const fmtRate = (v) => fmtBytes(v) + "/s";
+
+async function api(path, options) {
+  const res = await fetch(path, options);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || res.statusText);
+  return body;
+}
+
+function renderInterfaces() {
+  const box = $("cards");
+  if (!state.interfaces.length) {
+    box.innerHTML = '<div class="empty">No interfaces detected.</div>';
+    return;
+  }
+  box.innerHTML = state.interfaces.map((i) => `
+    <div class="card">
+      <div class="name"><span>${i.name}</span><span class="ip">table ${i.table_id}</span></div>
+      <div class="ip">${i.ip || "no address"}</div>
+      <div class="rates">
+        <span>↓ <b>${fmtRate(i.rx_rate)}</b></span>
+        <span class="up">↑ <b>${fmtRate(i.tx_rate)}</b></span>
+        <span class="muted">${fmtBytes((i.rx_bytes || 0) + (i.tx_bytes || 0))} total</span>
+      </div>
+    </div>`).join("");
+}
+
+function ifaceOptions(selected) {
+  const opts = ['<option value="">(default)</option>'];
+  for (const i of state.interfaces) {
+    opts.push(`<option value="${i.name}" ${i.name === selected ? "selected" : ""}>${i.name}</option>`);
+  }
+  return opts.join("");
+}
+
+function renderApps() {
+  const body = $("apps");
+  if (!state.processes.length) {
+    body.innerHTML = '<tr><td colspan="8" class="empty">No user applications detected.</td></tr>';
+    return;
+  }
+  body.innerHTML = state.processes.map((p) => `
+    <tr data-pid="${p.pid}">
+      <td class="num muted">${p.pid}</td>
+      <td>${escapeHTML(p.name)}</td>
+      <td><select data-role="iface">${ifaceOptions(p.assigned_interface)}</select></td>
+      <td>${p.assigned_interface ? `<span class="badge ${p.policy}">${p.policy || "failover"}</span>` : '<span class="muted">—</span>'}</td>
+      <td class="num">${fmtRate(p.rx_rate)}</td>
+      <td class="num">${fmtRate(p.tx_rate)}</td>
+      <td class="num muted">${fmtBytes((p.rx_bytes || 0) + (p.tx_bytes || 0))}</td>
+      <td><button class="ghost danger" data-role="reset">reset</button></td>
+    </tr>`).join("");
+}
+
+function renderRules() {
+  const body = $("rules");
+  if (!state.rules.length) {
+    body.innerHTML = '<tr><td colspan="4" class="empty">No rules yet — launches matching a rule are routed automatically.</td></tr>';
+  } else {
+    body.innerHTML = state.rules.map((r) => `
+      <tr data-match="${escapeHTML(r.match)}">
+        <td class="num">${escapeHTML(r.match)}</td>
+        <td class="num">${r.interface}</td>
+        <td><span class="badge ${r.policy || "failover"}">${r.policy || "failover"}</span></td>
+        <td><button class="ghost danger" data-role="delrule">delete</button></td>
+      </tr>`).join("");
+  }
+  $("ruleIface").innerHTML = state.interfaces.map((i) => `<option value="${i.name}">${i.name}</option>`).join("");
+}
+
+function renderPolicy() {
+  for (const btn of $("policySeg").querySelectorAll("button")) {
+    btn.classList.toggle("active", btn.dataset.policy === state.policy);
+  }
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function render() {
+  renderInterfaces();
+  renderApps();
+  renderRules();
+  renderPolicy();
+}
+
+function interactiveFocus() {
+  const el = document.activeElement;
+  return el && (el.tagName === "SELECT" || el.tagName === "INPUT");
+}
+
+async function refresh() {
+  try {
+    const next = await api("/api/state");
+    $("dot").classList.add("up");
+    $("status").textContent = "connected · " + new Date().toLocaleTimeString();
+    const key = JSON.stringify(next);
+    state.interfaces = next.interfaces || [];
+    state.processes = next.processes || [];
+    state.rules = next.rules || [];
+    state.policy = next.policy || "failover";
+    if (key !== lastRender && !interactiveFocus()) {
+      lastRender = key;
+      render();
+    }
+  } catch (err) {
+    $("dot").classList.remove("up");
+    $("status").textContent = "daemon unavailable: " + err.message;
+  }
+}
+
+$("apps").addEventListener("change", async (ev) => {
+  const row = ev.target.closest("tr");
+  if (!row || ev.target.dataset.role !== "iface") return;
+  const pid = Number(row.dataset.pid);
+  const iface = ev.target.value;
+  try {
+    if (iface) await api("/api/assign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pid, interface: iface }) });
+    else await api("/api/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pid }) });
+    showToast(iface ? `PID ${pid} routed via ${iface}` : `PID ${pid} back on default route`);
+    await refresh();
+  } catch (err) { showToast(err.message, true); }
+});
+
+$("apps").addEventListener("click", async (ev) => {
+  if (ev.target.dataset.role !== "reset") return;
+  const row = ev.target.closest("tr");
+  const pid = Number(row.dataset.pid);
+  try {
+    await api("/api/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pid }) });
+    showToast(`PID ${pid} back on default route`);
+    await refresh();
+  } catch (err) { showToast(err.message, true); }
+});
+
+$("rules").addEventListener("click", async (ev) => {
+  if (ev.target.dataset.role !== "delrule") return;
+  const match = ev.target.closest("tr").dataset.match;
+  try {
+    await api("/api/rules?match=" + encodeURIComponent(match), { method: "DELETE" });
+    showToast(`Rule removed: ${match}`);
+    await refresh();
+  } catch (err) { showToast(err.message, true); }
+});
+
+$("ruleAdd").addEventListener("click", async () => {
+  const match = $("ruleMatch").value.trim();
+  const iface = $("ruleIface").value;
+  const policy = $("rulePolicy").value;
+  if (!match || !iface) { showToast("Match and interface are required", true); return; }
+  try {
+    await api("/api/rules", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ match, interface: iface, policy }) });
+    $("ruleMatch").value = "";
+    showToast(`Rule saved: ${match} → ${iface} [${policy}]`);
+    await refresh();
+  } catch (err) { showToast(err.message, true); }
+});
+
+$("policySeg").addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("button");
+  if (!btn) return;
+  try {
+    const res = await api("/api/policy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ policy: btn.dataset.policy }) });
+    showToast(`Default policy: ${res.policy}`);
+    await refresh();
+  } catch (err) { showToast(err.message, true); }
+});
+
+refresh();
+setInterval(refresh, 1500);
+</script>
+</body>
+</html>

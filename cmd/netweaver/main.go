@@ -98,11 +98,14 @@ func main() {
 	case "policy":
 		handlePolicy(client, os.Args[2:])
 
+	case "web":
+		handleWeb(os.Args[2:], defaultSock)
+
 	case "run":
 		handleRun(os.Args[2:], defaultSock)
 
 	default:
 		fmt.Printf("Unknown command: %s\n", os.Args[1])
-		fmt.Println("Commands: list, interfaces, assign, reset, rules, policy, run")
+		fmt.Println("Commands: list, interfaces, assign, reset, rules, policy, web, run")
 	}
 }
