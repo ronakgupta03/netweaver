@@ -12,6 +12,7 @@ import (
 	"netweaver/internal/api"
 	"netweaver/internal/autoroute"
 	"netweaver/internal/cgroups"
+	"netweaver/internal/classifier"
 	"netweaver/internal/interfaces"
 	"netweaver/internal/policy"
 	"netweaver/internal/process"
@@ -22,13 +23,14 @@ import (
 )
 
 type DaemonService struct {
-	cgMgr     *cgroups.Manager
-	engine    *routing.Engine
-	monitor   *interfaces.Monitor
-	scanner   *process.Scanner
-	telemetry *telemetry.Engine
-	rules     *rules.Store
-	policy    *policy.Manager
+	cgMgr      *cgroups.Manager
+	engine     *routing.Engine
+	monitor    *interfaces.Monitor
+	scanner    *process.Scanner
+	telemetry  *telemetry.Engine
+	rules      *rules.Store
+	policy     *policy.Manager
+	classifier *classifier.Classifier
 
 	blockedMu sync.Mutex
 	blocked   map[int]string // PID -> interface it was quarantined away from
@@ -166,6 +168,15 @@ func main() {
 
 	_ = cgMgr.EnsureBlockedCgroup()
 
+	clf := classifier.New("/sys/fs/cgroup")
+	if err := clf.Start(); err != nil {
+		log.Printf("[netweaverd] eBPF classifier unavailable, using nftables marking: %v", err)
+	} else {
+		engine.SetMarking(false)
+		daemon.classifier = clf
+		log.Println("[netweaverd] eBPF classifier active (cgroup_skb/egress marking)")
+	}
+
 	// Initial interface discovery & routing setup
 	ifaces, err := monitor.DiscoverInterfaces()
 	if err == nil {
@@ -177,6 +188,12 @@ func main() {
 			if err := engine.SetupInterfaceRoute(iface); err != nil {
 				log.Printf("[netweaverd] route setup failed for %s: %v", iface.Name, err)
 			}
+		}
+	}
+
+	if daemon.classifier != nil {
+		if err := daemon.classifier.Apply(ifaces); err != nil {
+			daemon.disableClassifier("initial attach failed: " + err.Error())
 		}
 	}
 
@@ -221,6 +238,9 @@ func main() {
 	log.Println("[netweaverd] Shutting down, cleaning up rules...")
 	cancelMonitor()
 	srv.Stop()
+	if daemon.classifier != nil {
+		_ = daemon.classifier.Close()
+	}
 	_ = engine.Teardown()
 	_ = cgMgr.Teardown()
 	log.Println("[netweaverd] Clean exit.")

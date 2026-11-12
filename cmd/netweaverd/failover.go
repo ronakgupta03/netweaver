@@ -60,6 +60,28 @@ func (d *DaemonService) handleInterfaceChanges(prev, cur []types.InterfaceInfo) 
 	}
 
 	d.restoreBlocked(present)
+
+	if d.classifier != nil {
+		if err := d.classifier.Apply(cur); err != nil {
+			d.disableClassifier("attach failed: " + err.Error())
+		}
+	}
+}
+
+// disableClassifier falls back to nftables packet marking and keeps routing
+// functional when eBPF attachment stops working.
+func (d *DaemonService) disableClassifier(reason string) {
+	if d.classifier == nil {
+		return
+	}
+	_ = d.classifier.Close()
+	d.classifier = nil
+	d.engine.SetMarking(true)
+	if err := d.engine.ApplyNftables(); err != nil {
+		log.Printf("[netweaverd] nftables fallback failed: %v", err)
+		return
+	}
+	log.Printf("[netweaverd] eBPF classifier disabled (%s); nftables marking restored", reason)
 }
 
 // restoreBlocked returns quarantined processes to their interface once it is

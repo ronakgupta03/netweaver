@@ -20,11 +20,13 @@ const nftTemplate = `
 table inet netweaver {
     chain output {
         type route hook output priority mangle; policy accept;
+{{- if .Marking }}
 {{- if .Blocked }}
         socket cgroupv2 level 2 "netweaver/{{ .BlockedName }}" drop
 {{- end }}
 {{- range .Ifaces }}
         socket cgroupv2 level 2 "netweaver/{{ .Name }}" meta mark set 0x{{ printf "%x" .TableID }}
+{{- end }}
 {{- end }}
     }
 
@@ -39,6 +41,7 @@ table inet netweaver {
 
 type rulesetData struct {
 	Ifaces      []types.InterfaceInfo
+	Marking     bool
 	Blocked     bool
 	BlockedName string
 }
@@ -57,19 +60,21 @@ func renderRuleset(data rulesetData) string {
 
 // GenerateNftablesRuleset renders the full ruleset for the given interfaces.
 func GenerateNftablesRuleset(ifaces []types.InterfaceInfo) string {
-	return renderRuleset(rulesetData{Ifaces: ifaces, Blocked: true, BlockedName: cgroups.BlockedCgroup})
+	return renderRuleset(rulesetData{Ifaces: ifaces, Marking: true, Blocked: true, BlockedName: cgroups.BlockedCgroup})
 }
 
 // Engine owns policy routing state for every managed interface.
 type Engine struct {
 	ifaces     map[string]types.InterfaceInfo
 	cgroupRoot string
+	marking    bool
 }
 
 func NewEngine() *Engine {
 	return &Engine{
 		ifaces:     make(map[string]types.InterfaceInfo),
 		cgroupRoot: "/sys/fs/cgroup",
+		marking:    true,
 	}
 }
 
@@ -106,9 +111,21 @@ func (e *Engine) buildRuleset() (string, []string) {
 
 	return renderRuleset(rulesetData{
 		Ifaces:      kept,
+		Marking:     e.marking,
 		Blocked:     e.CgroupPathExists(cgroups.BlockedCgroup),
 		BlockedName: cgroups.BlockedCgroup,
 	}), skipped
+}
+
+// SetMarking selects whether nftables sets packet marks. When the eBPF
+// classifier is active, marking lives in the kernel program and nftables only
+// keeps NAT rules.
+func (e *Engine) SetMarking(enabled bool) {
+	e.marking = enabled
+}
+
+func (e *Engine) MarkingEnabled() bool {
+	return e.marking
 }
 
 func (e *Engine) SetupInterfaceRoute(info types.InterfaceInfo) error {

@@ -82,3 +82,23 @@ func TestRulesetSkipsMissingCgroupPaths(t *testing.T) {
 		t.Fatal("blocked rule must appear once the quarantine cgroup exists")
 	}
 }
+
+func TestMarkingDisabledOmitsSocketRules(t *testing.T) {
+	root := t.TempDir()
+	for _, name := range []string{"wlan0", "blocked"} {
+		if err := os.MkdirAll(filepath.Join(root, "netweaver", name), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	e := NewEngineWithCgroupRoot(root)
+	e.ifaces["wlan0"] = types.InterfaceInfo{Name: "wlan0", TableID: 0x104}
+	e.SetMarking(false)
+
+	ruleset, _ := e.buildRuleset()
+	if strings.Contains(ruleset, "socket cgroupv2") {
+		t.Fatalf("eBPF mode must not emit socket marking rules: %s", ruleset)
+	}
+	if !strings.Contains(ruleset, `oifname "wlan0" meta mark 0x104 masquerade`) {
+		t.Fatal("NAT rules must survive when eBPF handles marking")
+	}
+}
