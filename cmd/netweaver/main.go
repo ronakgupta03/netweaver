@@ -95,11 +95,14 @@ func main() {
 	case "rules":
 		handleRules(client, os.Args[2:])
 
+	case "policy":
+		handlePolicy(client, os.Args[2:])
+
 	case "run":
 		handleRun(os.Args[2:], defaultSock)
 
 	default:
 		fmt.Printf("Unknown command: %s\n", os.Args[1])
-		fmt.Println("Commands: list, interfaces, assign, reset, rules, run")
+		fmt.Println("Commands: list, interfaces, assign, reset, rules, policy, run")
 	}
 }

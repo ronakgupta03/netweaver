@@ -11,6 +11,8 @@ type Backend interface {
 	ListRules() []types.Rule
 	AddRule(rule types.Rule) error
 	RemoveRule(match string) error
+	GetPolicy() string
+	SetPolicy(policy string) error
 }
 
 type Request struct {
@@ -18,6 +20,7 @@ type Request struct {
 	PID       int         `json:"pid,omitempty"`
 	Interface string      `json:"interface,omitempty"`
 	Match     string      `json:"match,omitempty"`
+	Policy    string      `json:"policy,omitempty"`
 	Rule      *types.Rule `json:"rule,omitempty"`
 }
 
@@ -27,4 +30,5 @@ type Response struct {
 	Interfaces []types.InterfaceInfo `json:"interfaces,omitempty"`
 	Processes  []types.ProcessInfo   `json:"processes,omitempty"`
 	Rules      []types.Rule          `json:"rules,omitempty"`
+	Policy     string                `json:"policy,omitempty"`
 }

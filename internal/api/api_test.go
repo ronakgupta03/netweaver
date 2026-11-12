@@ -9,7 +9,8 @@ import (
 )
 
 type mockBackend struct {
-	rules []types.Rule
+	rules  []types.Rule
+	policy string
 }
 
 func (m *mockBackend) ListInterfaces() ([]types.InterfaceInfo, error) {
@@ -34,6 +35,18 @@ func (m *mockBackend) ListRules() []types.Rule {
 
 func (m *mockBackend) AddRule(rule types.Rule) error {
 	m.rules = append(m.rules, rule)
+	return nil
+}
+
+func (m *mockBackend) GetPolicy() string {
+	if m.policy == "" {
+		return types.PolicyFailover
+	}
+	return m.policy
+}
+
+func (m *mockBackend) SetPolicy(p string) error {
+	m.policy = p
 	return nil
 }
 
@@ -94,5 +107,12 @@ func TestIPCCommunication(t *testing.T) {
 	}
 	if rules, _ := client.ListRules(); len(rules) != 0 {
 		t.Fatalf("rule not removed: %+v", rules)
+	}
+
+	if p, err := client.GetPolicy(); err != nil || p != types.PolicyFailover {
+		t.Fatalf("get policy = %q err=%v", p, err)
+	}
+	if p, err := client.SetPolicy(types.PolicyStrict); err != nil || p != types.PolicyStrict {
+		t.Fatalf("set policy = %q err=%v", p, err)
 	}
 }

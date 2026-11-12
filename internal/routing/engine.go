@@ -14,6 +14,7 @@ const nftTemplate = `
 table inet netweaver {
     chain output {
         type route hook output priority mangle; policy accept;
+        socket cgroupv2 level 2 "netweaver/blocked" drop
 {{- range . }}
         socket cgroupv2 level 2 "netweaver/{{ .Name }}" meta mark set 0x{{ printf "%x" .TableID }}
 {{- end }}
@@ -73,6 +74,22 @@ func (e *Engine) SetupInterfaceRoute(info types.InterfaceInfo) error {
 	_ = exec.Command("ip", "-6", "rule", "del", "fwmark", fmt.Sprintf("0x%x", info.TableID), "table", fmt.Sprintf("%d", info.TableID)).Run()
 	_ = exec.Command("ip", "-6", "rule", "add", "fwmark", fmt.Sprintf("0x%x", info.TableID), "table", fmt.Sprintf("%d", info.TableID), "priority", "1000").Run()
 
+	return e.ApplyNftables()
+}
+
+// RemoveInterface drops every route and rule owned by an interface that is no
+// longer usable, so its marks cannot blackhole traffic.
+func (e *Engine) RemoveInterface(name string) error {
+	info, ok := e.ifaces[name]
+	if !ok {
+		return nil
+	}
+	table := fmt.Sprintf("%d", info.TableID)
+	_ = exec.Command("ip", "rule", "del", "fwmark", fmt.Sprintf("0x%x", info.TableID), "table", table).Run()
+	_ = exec.Command("ip", "-6", "rule", "del", "fwmark", fmt.Sprintf("0x%x", info.TableID), "table", table).Run()
+	_ = exec.Command("ip", "route", "flush", "table", table).Run()
+	_ = exec.Command("ip", "-6", "route", "flush", "table", table).Run()
+	delete(e.ifaces, name)
 	return e.ApplyNftables()
 }
 

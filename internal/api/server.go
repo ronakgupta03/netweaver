@@ -94,6 +94,16 @@ func (s *Server) handleConn(conn net.Conn) {
 		} else {
 			resp.Success = true
 		}
+	case "policy.get":
+		resp.Success = true
+		resp.Policy = s.backend.GetPolicy()
+	case "policy.set":
+		if err := s.backend.SetPolicy(req.Policy); err != nil {
+			resp.Error = err.Error()
+		} else {
+			resp.Success = true
+			resp.Policy = s.backend.GetPolicy()
+		}
 	case "rules.remove":
 		if err := s.backend.RemoveRule(req.Match); err != nil {
 			resp.Error = err.Error()

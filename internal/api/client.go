@@ -80,3 +80,19 @@ func (c *Client) RemoveRule(match string) error {
 	_, err := c.call(Request{Method: "rules.remove", Match: match})
 	return err
 }
+
+func (c *Client) GetPolicy() (string, error) {
+	resp, err := c.call(Request{Method: "policy.get"})
+	if err != nil {
+		return "", err
+	}
+	return resp.Policy, nil
+}
+
+func (c *Client) SetPolicy(policy string) (string, error) {
+	resp, err := c.call(Request{Method: "policy.set", Policy: policy})
+	if err != nil {
+		return "", err
+	}
+	return resp.Policy, nil
+}

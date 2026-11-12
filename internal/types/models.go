@@ -39,6 +39,7 @@ type ProcessInfo struct {
 	Cmdline           string  `json:"cmdline"`
 	UID               uint32  `json:"uid"`
 	AssignedInterface string  `json:"assigned_interface"`
+	Policy            string  `json:"policy,omitempty"`
 	RxBytes           uint64  `json:"rx_bytes"`
 	TxBytes           uint64  `json:"tx_bytes"`
 	RxRate            float64 `json:"rx_rate"`

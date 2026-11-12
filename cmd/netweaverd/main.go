@@ -6,12 +6,14 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"netweaver/internal/api"
 	"netweaver/internal/autoroute"
 	"netweaver/internal/cgroups"
 	"netweaver/internal/interfaces"
+	"netweaver/internal/policy"
 	"netweaver/internal/process"
 	"netweaver/internal/routing"
 	"netweaver/internal/rules"
@@ -26,6 +28,10 @@ type DaemonService struct {
 	scanner   *process.Scanner
 	telemetry *telemetry.Engine
 	rules     *rules.Store
+	policy    *policy.Manager
+
+	blockedMu sync.Mutex
+	blocked   map[int]string // PID -> interface it was quarantined away from
 }
 
 func (d *DaemonService) ListInterfaces() ([]types.InterfaceInfo, error) {
@@ -53,6 +59,7 @@ func (d *DaemonService) ListProcesses() ([]types.ProcessInfo, error) {
 		if treeErr != nil || len(pids) == 0 {
 			pids = []int{procs[i].PID}
 		}
+		procs[i].Policy = d.policy.Resolve(procs[i].PID)
 		usage, rate := d.telemetry.SubtreeUsage(pids)
 		procs[i].RxBytes = usage.Rx
 		procs[i].TxBytes = usage.Tx
@@ -71,10 +78,20 @@ func (d *DaemonService) AssignRoute(pid int, iface string) error {
 	if err != nil {
 		pids = []int{pid}
 	}
+	pol := d.policy.Resolve(pid)
 	for _, p := range pids {
 		_ = d.cgMgr.AssignPID(iface, p)
 	}
+	d.policy.Set(pid, pol)
 	return nil
+}
+
+func (d *DaemonService) GetPolicy() string {
+	return d.policy.Default()
+}
+
+func (d *DaemonService) SetPolicy(p string) error {
+	return d.policy.SetDefault(p)
 }
 
 func (d *DaemonService) ListRules() []types.Rule {
@@ -97,6 +114,7 @@ func (d *DaemonService) ResetRoute(pid int) error {
 	for _, p := range pids {
 		_ = d.cgMgr.ResetPID(p)
 	}
+	d.policy.Forget(pid)
 	return nil
 }
 
@@ -126,6 +144,28 @@ func main() {
 		log.Printf("[netweaverd] WARNING: %v", err)
 	}
 
+	settingsPath := os.Getenv("NETWEAVER_SETTINGS")
+	if settingsPath == "" {
+		settingsPath = "/etc/netweaver/settings.json"
+	}
+	policyMgr := policy.NewManager(settingsPath, ruleStore)
+	if err := policyMgr.Load(); err != nil {
+		log.Printf("[netweaverd] WARNING: %v", err)
+	}
+
+	daemon := &DaemonService{
+		cgMgr:     cgMgr,
+		engine:    engine,
+		monitor:   monitor,
+		scanner:   scanner,
+		telemetry: telemetryEngine,
+		rules:     ruleStore,
+		policy:    policyMgr,
+		blocked:   make(map[int]string),
+	}
+
+	_ = cgMgr.EnsureBlockedCgroup()
+
 	// Initial interface discovery & routing setup
 	ifaces, err := monitor.DiscoverInterfaces()
 	if err == nil {
@@ -149,23 +189,13 @@ func main() {
 
 	notifyChan := make(chan []types.InterfaceInfo, 10)
 	go monitor.StartWatch(ctx, notifyChan)
+	prevIfaces := ifaces
 	go func() {
 		for updatedIfaces := range notifyChan {
-			for _, iface := range updatedIfaces {
-				_ = cgMgr.EnsureInterfaceCgroup(iface.Name)
-				_ = engine.SetupInterfaceRoute(iface)
-			}
+			daemon.handleInterfaceChanges(prevIfaces, updatedIfaces)
+			prevIfaces = updatedIfaces
 		}
 	}()
-
-	daemon := &DaemonService{
-		cgMgr:     cgMgr,
-		engine:    engine,
-		monitor:   monitor,
-		scanner:   scanner,
-		telemetry: telemetryEngine,
-		rules:     ruleStore,
-	}
 
 	router := autoroute.NewRouter(ruleStore, routerAssigner{daemon})
 	router.OnAssign(func(ev autoroute.Event) {

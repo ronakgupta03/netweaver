@@ -91,9 +91,9 @@ func (m Model) View() string {
 	b.WriteString("\n\n")
 
 	countStr := fmt.Sprintf("(%d applications)", len(m.processes))
-	b.WriteString(fmt.Sprintf("%-2s %-7s %-26s %-12s %-11s %-11s %-10s %-16s %s\n",
-		"", "PID", "APPLICATION", "INTERFACE", "DOWN", "UP", "USED", "ACTIVITY", countStr))
-	b.WriteString("--------------------------------------------------------------------------------------------\n")
+	b.WriteString(fmt.Sprintf("%-2s %-7s %-24s %-12s %-8s %-11s %-11s %-10s %-12s %s\n",
+		"", "PID", "APPLICATION", "INTERFACE", "POLICY", "DOWN", "UP", "USED", "ACTIVITY", countStr))
+	b.WriteString("------------------------------------------------------------------------------------------------------\n")
 
 	if len(m.processes) == 0 {
 		b.WriteString("   No user applications detected.\n")
@@ -122,12 +122,16 @@ func (m Model) View() string {
 				iface = "(default)"
 			}
 
-			line := fmt.Sprintf("%s %-7d %-26s %-12s %-11s %-11s %-10s %-16s",
-				cursor, p.PID, truncate(p.Name, 26), truncate(iface, 12),
+			policy := p.Policy
+			if policy == "" {
+				policy = "-"
+			}
+			line := fmt.Sprintf("%s %-7d %-24s %-12s %-8s %-11s %-11s %-10s %-12s",
+				cursor, p.PID, truncate(p.Name, 24), truncate(iface, 12), truncate(policy, 8),
 				telemetry.FormatRate(p.RxRate),
 				telemetry.FormatRate(p.TxRate),
 				telemetry.FormatBytes(p.RxBytes+p.TxBytes),
-				sparkline(m.history[p.PID], historyLen))
+				sparkline(m.history[p.PID], 12))
 			b.WriteString(style.Render(line) + "\n")
 		}
 

@@ -56,6 +56,12 @@ func parseDefaultRoutes6(output string) map[string]string {
 	return gateways
 }
 
+// Priority ranks interfaces for default-route preference and failover targets:
+// lower is better (physical Ethernet, then Wi-Fi, then USB tethering).
+func Priority(name string) int {
+	return getPreferredMetric(name)
+}
+
 func getPreferredMetric(name string) int {
 	if strings.HasPrefix(name, "eno") || strings.HasPrefix(name, "eth") {
 		return 50 // Highest priority: physical Ethernet

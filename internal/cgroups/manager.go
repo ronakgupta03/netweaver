@@ -50,6 +50,44 @@ func (m *Manager) EnsureInterfaceCgroup(iface string) error {
 	return os.MkdirAll(path, 0755)
 }
 
+// BlockedCgroup is the quarantine group whose traffic nftables drops.
+const BlockedCgroup = "blocked"
+
+// PIDs lists process IDs currently attached to an interface cgroup.
+func (m *Manager) PIDs(iface string) ([]int, error) {
+	path, err := m.InterfaceCgroupPath(iface)
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(filepath.Join(path, "cgroup.procs"))
+	if err != nil {
+		return nil, err
+	}
+	var pids []int
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		pid, err := strconv.Atoi(line)
+		if err != nil {
+			continue
+		}
+		pids = append(pids, pid)
+	}
+	return pids, nil
+}
+
+// EnsureBlockedCgroup creates the quarantine cgroup used by strict policies.
+func (m *Manager) EnsureBlockedCgroup() error {
+	return os.MkdirAll(filepath.Join(m.cgroupRoot, "netweaver", BlockedCgroup), 0755)
+}
+
+// Block moves a PID into the quarantine cgroup.
+func (m *Manager) Block(pid int) error {
+	return m.AssignPID(BlockedCgroup, pid)
+}
+
 func (m *Manager) AssignPID(iface string, pid int) error {
 	if pid <= 100 {
 		return fmt.Errorf("cannot assign system process PID %d", pid)

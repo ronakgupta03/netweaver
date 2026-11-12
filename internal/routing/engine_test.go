@@ -36,3 +36,15 @@ func TestNftablesConfigGeneration(t *testing.T) {
 		t.Fatal("missing eno1 masquerade rule")
 	}
 }
+
+func TestNftablesDropsQuarantinedCgroup(t *testing.T) {
+	ruleset := GenerateNftablesRuleset([]types.InterfaceInfo{{Name: "wlan0", TableID: 0x103}})
+	drop := `socket cgroupv2 level 2 "netweaver/blocked" drop`
+	if !strings.Contains(ruleset, drop) {
+		t.Fatalf("ruleset must drop quarantined traffic: %s", ruleset)
+	}
+	// The drop must be evaluated before interface marking rules.
+	if strings.Index(ruleset, drop) > strings.Index(ruleset, `"netweaver/wlan0"`) {
+		t.Fatal("blocked drop rule must precede marking rules")
+	}
+}
