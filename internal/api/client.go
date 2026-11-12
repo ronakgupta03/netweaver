@@ -62,3 +62,21 @@ func (c *Client) ResetRoute(pid int) error {
 	_, err := c.call(Request{Method: "route.reset", PID: pid})
 	return err
 }
+
+func (c *Client) ListRules() ([]types.Rule, error) {
+	resp, err := c.call(Request{Method: "rules.list"})
+	if err != nil {
+		return nil, err
+	}
+	return resp.Rules, nil
+}
+
+func (c *Client) AddRule(rule types.Rule) error {
+	_, err := c.call(Request{Method: "rules.add", Rule: &rule})
+	return err
+}
+
+func (c *Client) RemoveRule(match string) error {
+	_, err := c.call(Request{Method: "rules.remove", Match: match})
+	return err
+}

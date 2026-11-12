@@ -81,6 +81,25 @@ func (s *Server) handleConn(conn net.Conn) {
 		} else {
 			resp.Success = true
 		}
+	case "rules.list":
+		resp.Success = true
+		resp.Rules = s.backend.ListRules()
+	case "rules.add":
+		if req.Rule == nil {
+			resp.Error = "missing rule payload"
+			break
+		}
+		if err := s.backend.AddRule(*req.Rule); err != nil {
+			resp.Error = err.Error()
+		} else {
+			resp.Success = true
+		}
+	case "rules.remove":
+		if err := s.backend.RemoveRule(req.Match); err != nil {
+			resp.Error = err.Error()
+		} else {
+			resp.Success = true
+		}
 	default:
 		resp.Error = "unknown method"
 	}

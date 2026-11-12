@@ -3,64 +3,64 @@ package process
 
 import (
 	"fmt"
+	"netweaver/internal/types"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"netweaver/internal/types"
 
 	"github.com/shirou/gopsutil/v3/process"
 )
 
 var ignoredServices = map[string]bool{
-	"systemd":             true,
-	"(sd-pam)":            true,
-	"dbus-broker":         true,
-	"dbus-broker-launch":  true,
-	"pipewire":            true,
-	"wireplumber":         true,
-	"pipewire-pulse":      true,
-	"start-hyprland":      true,
-	"Hyprland":            true,
-	"Xwayland":            true,
-	"waybar":              true,
-	"hypridle":            true,
-	"wl-paste":            true,
-	"gvfsd":               true,
-	"gvfsd-fuse":          true,
-	"gvfsd-metadata":      true,
-	"dconf-service":       true,
-	"xsettingsd":          true,
-	"at-spi-bus-launcher": true,
-	"at-spi2-registryd":   true,
-	"hyprpolkitagent":     true,
-	"quickshell":          true,
-	"cava":                true,
-	"awww-daemon":         true,
-	"playerctl":           true,
-	"obexd":               true,
-	"fusermount3":         true,
-	"wenativehost":        true,
-	"node-MainThread":     true,
+	"systemd":                 true,
+	"(sd-pam)":                true,
+	"dbus-broker":             true,
+	"dbus-broker-launch":      true,
+	"pipewire":                true,
+	"wireplumber":             true,
+	"pipewire-pulse":          true,
+	"start-hyprland":          true,
+	"Hyprland":                true,
+	"Xwayland":                true,
+	"waybar":                  true,
+	"hypridle":                true,
+	"wl-paste":                true,
+	"gvfsd":                   true,
+	"gvfsd-fuse":              true,
+	"gvfsd-metadata":          true,
+	"dconf-service":           true,
+	"xsettingsd":              true,
+	"at-spi-bus-launcher":     true,
+	"at-spi2-registryd":       true,
+	"hyprpolkitagent":         true,
+	"quickshell":              true,
+	"cava":                    true,
+	"awww-daemon":             true,
+	"playerctl":               true,
+	"obexd":                   true,
+	"fusermount3":             true,
+	"wenativehost":            true,
+	"node-MainThread":         true,
 	"gitstatusd-linux-x86_64": true,
-	"alacritty":           true,
-	"kitty":               true,
-	"foot":                true,
-	"wezterm-gui":         true,
-	"crashhelper":         true,
-	"forkserver":          true,
-	"Socket Process":      true,
-	"WebExtensions":       true,
-	"RDD Process":         true,
-	"Privileged Cont":     true,
-	"Utility Process":     true,
-	"Isolated Servic":     true,
-	"Isolated Web Co":     true,
-	"Web Content":         true,
-	"chrome_crashpad":     true,
+	"alacritty":               true,
+	"kitty":                   true,
+	"foot":                    true,
+	"wezterm-gui":             true,
+	"crashhelper":             true,
+	"forkserver":              true,
+	"Socket Process":          true,
+	"WebExtensions":           true,
+	"RDD Process":             true,
+	"Privileged Cont":         true,
+	"Utility Process":         true,
+	"Isolated Servic":         true,
+	"Isolated Web Co":         true,
+	"Web Content":             true,
+	"chrome_crashpad":         true,
 	"chrome_crashpad_handler": true,
-	"cat":                 true,
-	"sleep":               true,
+	"cat":                     true,
+	"sleep":                   true,
 }
 
 type Scanner struct{}
@@ -226,6 +226,11 @@ func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 		})
 	}
 	return result, nil
+}
+
+// AssignedInterface reports the NetWeaver interface cgroup a PID belongs to.
+func (s *Scanner) AssignedInterface(pid int) string {
+	return s.detectAssignedInterface(pid)
 }
 
 func (s *Scanner) detectAssignedInterface(pid int) string {

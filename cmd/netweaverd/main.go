@@ -9,10 +9,12 @@ import (
 	"syscall"
 
 	"netweaver/internal/api"
+	"netweaver/internal/autoroute"
 	"netweaver/internal/cgroups"
 	"netweaver/internal/interfaces"
 	"netweaver/internal/process"
 	"netweaver/internal/routing"
+	"netweaver/internal/rules"
 	"netweaver/internal/telemetry"
 	"netweaver/internal/types"
 )
@@ -23,6 +25,7 @@ type DaemonService struct {
 	monitor   *interfaces.Monitor
 	scanner   *process.Scanner
 	telemetry *telemetry.Engine
+	rules     *rules.Store
 }
 
 func (d *DaemonService) ListInterfaces() ([]types.InterfaceInfo, error) {
@@ -74,6 +77,18 @@ func (d *DaemonService) AssignRoute(pid int, iface string) error {
 	return nil
 }
 
+func (d *DaemonService) ListRules() []types.Rule {
+	return d.rules.List()
+}
+
+func (d *DaemonService) AddRule(rule types.Rule) error {
+	return d.rules.Add(rule)
+}
+
+func (d *DaemonService) RemoveRule(match string) error {
+	return d.rules.Remove(match)
+}
+
 func (d *DaemonService) ResetRoute(pid int) error {
 	pids, _ := d.scanner.GetProcessTree(pid)
 	if len(pids) == 0 {
@@ -101,6 +116,15 @@ func main() {
 	monitor := interfaces.NewMonitor()
 	scanner := process.NewScanner()
 	telemetryEngine := telemetry.NewEngine()
+
+	rulesPath := os.Getenv("NETWEAVER_RULES")
+	if rulesPath == "" {
+		rulesPath = "/etc/netweaver/rules.json"
+	}
+	ruleStore := rules.NewStore(rulesPath)
+	if err := ruleStore.Load(); err != nil {
+		log.Printf("[netweaverd] WARNING: %v", err)
+	}
 
 	// Initial interface discovery & routing setup
 	ifaces, err := monitor.DiscoverInterfaces()
@@ -140,7 +164,14 @@ func main() {
 		monitor:   monitor,
 		scanner:   scanner,
 		telemetry: telemetryEngine,
+		rules:     ruleStore,
 	}
+
+	router := autoroute.NewRouter(ruleStore, routerAssigner{daemon})
+	router.OnAssign(func(ev autoroute.Event) {
+		log.Printf("[netweaverd] auto-routed %s (pid %d) -> %s [%s]", ev.Name, ev.PID, ev.Interface, ev.Policy)
+	})
+	router.Start(ctx)
 
 	sockPath := "/run/netweaver/netweaver.sock"
 	srv := api.NewServer(sockPath, daemon)
@@ -159,4 +190,15 @@ func main() {
 	_ = engine.Teardown()
 	_ = cgMgr.Teardown()
 	log.Println("[netweaverd] Clean exit.")
+}
+
+// routerAssigner adapts DaemonService to the autoroute.Assigner contract.
+type routerAssigner struct{ d *DaemonService }
+
+func (r routerAssigner) Assign(pid int, iface string) error {
+	return r.d.AssignRoute(pid, iface)
+}
+
+func (r routerAssigner) Current(pid int) string {
+	return r.d.scanner.AssignedInterface(pid)
 }

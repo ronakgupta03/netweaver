@@ -2,9 +2,9 @@
 package routing
 
 import (
+	"netweaver/internal/types"
 	"strings"
 	"testing"
-	"netweaver/internal/types"
 )
 
 func TestNftablesConfigGeneration(t *testing.T) {

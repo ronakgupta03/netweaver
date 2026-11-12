@@ -56,3 +56,27 @@ type DaemonStatus struct {
 	ActiveIfaces  int    `json:"active_ifaces"`
 	ManagedProcs  int    `json:"managed_procs"`
 }
+
+// Policy selects how assigned traffic behaves when its interface goes away.
+const (
+	PolicyFailover = "failover" // migrate to the best remaining interface
+	PolicyStrict   = "strict"   // block traffic instead of leaking elsewhere
+)
+
+// Rule is a persisted auto-routing rule matched against process names.
+type Rule struct {
+	Match     string `json:"match"`
+	Interface string `json:"interface"`
+	Policy    string `json:"policy,omitempty"`
+}
+
+func (r Rule) NormalizedPolicy() string {
+	if r.Policy == PolicyStrict {
+		return PolicyStrict
+	}
+	return PolicyFailover
+}
+
+func ValidPolicy(p string) bool {
+	return p == PolicyFailover || p == PolicyStrict || p == ""
+}

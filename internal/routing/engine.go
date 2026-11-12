@@ -4,10 +4,10 @@ package routing
 import (
 	"bytes"
 	"fmt"
+	"netweaver/internal/types"
 	"os/exec"
 	"strings"
 	"text/template"
-	"netweaver/internal/types"
 )
 
 const nftTemplate = `
