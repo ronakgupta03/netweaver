@@ -171,8 +171,12 @@ func main() {
 	if err == nil {
 		for _, iface := range ifaces {
 			log.Printf("[netweaverd] Discovered interface: %s (table %d)", iface.Name, iface.TableID)
-			_ = cgMgr.EnsureInterfaceCgroup(iface.Name)
-			_ = engine.SetupInterfaceRoute(iface)
+			if err := cgMgr.EnsureInterfaceCgroup(iface.Name); err != nil {
+				log.Printf("[netweaverd] cgroup setup failed for %s: %v", iface.Name, err)
+			}
+			if err := engine.SetupInterfaceRoute(iface); err != nil {
+				log.Printf("[netweaverd] route setup failed for %s: %v", iface.Name, err)
+			}
 		}
 	}
 

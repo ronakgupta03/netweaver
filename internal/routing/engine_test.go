@@ -3,6 +3,8 @@ package routing
 
 import (
 	"netweaver/internal/types"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -46,5 +48,37 @@ func TestNftablesDropsQuarantinedCgroup(t *testing.T) {
 	// The drop must be evaluated before interface marking rules.
 	if strings.Index(ruleset, drop) > strings.Index(ruleset, `"netweaver/wlan0"`) {
 		t.Fatal("blocked drop rule must precede marking rules")
+	}
+}
+
+func TestRulesetSkipsMissingCgroupPaths(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "netweaver", "wlan0"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	e := NewEngineWithCgroupRoot(root)
+	e.ifaces["wlan0"] = types.InterfaceInfo{Name: "wlan0", TableID: 0x103}
+	e.ifaces["ghost0"] = types.InterfaceInfo{Name: "ghost0", TableID: 0x110}
+
+	ruleset, skipped := e.buildRuleset()
+	if len(skipped) != 1 || skipped[0] != "ghost0" {
+		t.Fatalf("skipped = %v, want [ghost0]", skipped)
+	}
+	if !strings.Contains(ruleset, `"netweaver/wlan0"`) {
+		t.Fatal("existing cgroup must be marked")
+	}
+	if strings.Contains(ruleset, `"netweaver/ghost0"`) {
+		t.Fatal("missing cgroup must not be referenced")
+	}
+	if strings.Contains(ruleset, `"netweaver/blocked"`) {
+		t.Fatal("blocked rule must be omitted while its cgroup is missing")
+	}
+
+	if err := os.MkdirAll(filepath.Join(root, "netweaver", "blocked"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	ruleset, _ = e.buildRuleset()
+	if !strings.Contains(ruleset, `"netweaver/blocked" drop`) {
+		t.Fatal("blocked rule must appear once the quarantine cgroup exists")
 	}
 }

@@ -4,51 +4,111 @@ package routing
 import (
 	"bytes"
 	"fmt"
-	"netweaver/internal/types"
-	"os/exec"
+	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
+
+	"netweaver/internal/cgroups"
+	"netweaver/internal/types"
+
+	"os/exec"
 )
 
 const nftTemplate = `
 table inet netweaver {
     chain output {
         type route hook output priority mangle; policy accept;
-        socket cgroupv2 level 2 "netweaver/blocked" drop
-{{- range . }}
+{{- if .Blocked }}
+        socket cgroupv2 level 2 "netweaver/{{ .BlockedName }}" drop
+{{- end }}
+{{- range .Ifaces }}
         socket cgroupv2 level 2 "netweaver/{{ .Name }}" meta mark set 0x{{ printf "%x" .TableID }}
 {{- end }}
     }
 
     chain postrouting {
         type nat hook postrouting priority srcnat; policy accept;
-{{- range . }}
+{{- range .Ifaces }}
         oifname "{{ .Name }}" meta mark 0x{{ printf "%x" .TableID }} masquerade
 {{- end }}
     }
 }
 `
 
-func GenerateNftablesRuleset(ifaces []types.InterfaceInfo) string {
+type rulesetData struct {
+	Ifaces      []types.InterfaceInfo
+	Blocked     bool
+	BlockedName string
+}
+
+func renderRuleset(data rulesetData) string {
 	tmpl, err := template.New("nft").Parse(nftTemplate)
 	if err != nil {
 		return ""
 	}
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, ifaces); err != nil {
+	if err := tmpl.Execute(&buf, data); err != nil {
 		return ""
 	}
 	return buf.String()
 }
 
+// GenerateNftablesRuleset renders the full ruleset for the given interfaces.
+func GenerateNftablesRuleset(ifaces []types.InterfaceInfo) string {
+	return renderRuleset(rulesetData{Ifaces: ifaces, Blocked: true, BlockedName: cgroups.BlockedCgroup})
+}
+
+// Engine owns policy routing state for every managed interface.
 type Engine struct {
-	ifaces map[string]types.InterfaceInfo
+	ifaces     map[string]types.InterfaceInfo
+	cgroupRoot string
 }
 
 func NewEngine() *Engine {
 	return &Engine{
-		ifaces: make(map[string]types.InterfaceInfo),
+		ifaces:     make(map[string]types.InterfaceInfo),
+		cgroupRoot: "/sys/fs/cgroup",
 	}
+}
+
+func NewEngineWithCgroupRoot(root string) *Engine {
+	e := NewEngine()
+	e.cgroupRoot = root
+	return e
+}
+
+// CgroupPathExists reports whether the cgroup directory for a name is present.
+// nftables resolves cgroupv2 paths when the ruleset is loaded and rejects the
+// whole transaction when one is missing, so rules must be filtered first.
+func (e *Engine) CgroupPathExists(name string) bool {
+	info, err := os.Stat(filepath.Join(e.cgroupRoot, "netweaver", name))
+	return err == nil && info.IsDir()
+}
+
+func (e *Engine) buildRuleset() (string, []string) {
+	var list []types.InterfaceInfo
+	for _, iface := range e.ifaces {
+		list = append(list, iface)
+	}
+	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
+
+	kept := make([]types.InterfaceInfo, 0, len(list))
+	var skipped []string
+	for _, iface := range list {
+		if !e.CgroupPathExists(iface.Name) {
+			skipped = append(skipped, iface.Name)
+			continue
+		}
+		kept = append(kept, iface)
+	}
+
+	return renderRuleset(rulesetData{
+		Ifaces:      kept,
+		Blocked:     e.CgroupPathExists(cgroups.BlockedCgroup),
+		BlockedName: cgroups.BlockedCgroup,
+	}), skipped
 }
 
 func (e *Engine) SetupInterfaceRoute(info types.InterfaceInfo) error {
@@ -94,11 +154,7 @@ func (e *Engine) RemoveInterface(name string) error {
 }
 
 func (e *Engine) ApplyNftables() error {
-	var list []types.InterfaceInfo
-	for _, iface := range e.ifaces {
-		list = append(list, iface)
-	}
-	ruleset := GenerateNftablesRuleset(list)
+	ruleset, skipped := e.buildRuleset()
 
 	// Idempotently purge existing table before reapplying to prevent duplicate rules
 	_ = exec.Command("nft", "delete", "table", "inet", "netweaver").Run()
@@ -106,7 +162,7 @@ func (e *Engine) ApplyNftables() error {
 	cmd := exec.Command("nft", "-f", "-")
 	cmd.Stdin = strings.NewReader(ruleset)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("nft apply failed: %s: %w", string(out), err)
+		return fmt.Errorf("nft apply failed (skipped cgroups: %v): %s: %w", skipped, string(out), err)
 	}
 	return nil
 }
