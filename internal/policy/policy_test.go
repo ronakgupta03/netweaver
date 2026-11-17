@@ -65,6 +65,47 @@ func TestResolvePrecedence(t *testing.T) {
 	}
 }
 
+func TestSetValidationNormalizationAndHasExplicit(t *testing.T) {
+	m := NewManager(filepath.Join(t.TempDir(), "settings.json"), nil)
+	const pid = 4242
+
+	if m.HasExplicit(pid) {
+		t.Fatal("expected HasExplicit false initially")
+	}
+
+	m.Set(pid, " STRICT ")
+	if !m.HasExplicit(pid) {
+		t.Fatal("expected HasExplicit true after Set")
+	}
+	if got := m.Resolve(pid); got != types.PolicyStrict {
+		t.Fatalf("Resolve = %q, want %q", got, types.PolicyStrict)
+	}
+
+	// Invalid policy should be ignored without clobbering existing explicit policy.
+	m.Set(pid, "bogus")
+	if got := m.Resolve(pid); got != types.PolicyStrict {
+		t.Fatalf("Resolve after invalid Set = %q, want %q", got, types.PolicyStrict)
+	}
+
+	// Empty policy clears explicit override.
+	m.Set(pid, "")
+	if m.HasExplicit(pid) {
+		t.Fatal("expected HasExplicit false after clearing with empty string")
+	}
+	if got := m.Resolve(pid); got != types.PolicyFailover {
+		t.Fatalf("Resolve after clear = %q, want failover", got)
+	}
+
+	m.Set(pid, "Failover")
+	if !m.HasExplicit(pid) || m.Resolve(pid) != types.PolicyFailover {
+		t.Fatalf("expected explicit failover, has=%v resolve=%q", m.HasExplicit(pid), m.Resolve(pid))
+	}
+	m.Forget(pid)
+	if m.HasExplicit(pid) {
+		t.Fatal("expected HasExplicit false after Forget")
+	}
+}
+
 func itoa(v int) string {
 	if v == 0 {
 		return "0"

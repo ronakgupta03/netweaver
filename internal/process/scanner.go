@@ -215,7 +215,7 @@ func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 		markDescendants(p, seenDescendants)
 
 		cmdline, _ := p.Cmdline()
-		assigned := s.detectAssignedInterface(int(p.Pid))
+		assigned, blocked := s.detectCgroupAssignment(int(p.Pid))
 
 		result = append(result, types.ProcessInfo{
 			PID:               int(p.Pid),
@@ -223,6 +223,7 @@ func (s *Scanner) ScanProcesses() ([]types.ProcessInfo, error) {
 			Cmdline:           cmdline,
 			UID:               uid,
 			AssignedInterface: assigned,
+			Blocked:           blocked,
 		})
 	}
 	return result, nil
@@ -233,22 +234,42 @@ func (s *Scanner) AssignedInterface(pid int) string {
 	return s.detectAssignedInterface(pid)
 }
 
-func (s *Scanner) detectAssignedInterface(pid int) string {
+func (s *Scanner) detectCgroupAssignment(pid int) (string, bool) {
 	cgroupPath := filepath.Join("/proc", strconv.Itoa(pid), "cgroup")
 	data, err := os.ReadFile(cgroupPath)
 	if err != nil {
-		return ""
+		return "", false
 	}
-	content := string(data)
-	idx := strings.Index(content, "/netweaver/")
-	if idx == -1 {
-		return ""
+	return parseCgroupAssignment(string(data))
+}
+
+func (s *Scanner) detectAssignedInterface(pid int) string {
+	iface, _ := s.detectCgroupAssignment(pid)
+	return iface
+}
+
+// parseCgroupAssignment extracts the NetWeaver cgroup assignment (such as an
+// interface name, "default", or "blocked") from /proc/<pid>/cgroup content,
+// stripping any per-process leaf subpath (e.g. /p1234).
+func parseCgroupAssignment(content string) (iface string, blocked bool) {
+	for _, line := range strings.Split(content, "\n") {
+		idx := strings.Index(line, "/netweaver/")
+		if idx == -1 {
+			continue
+		}
+		sub := strings.TrimSpace(line[idx+len("/netweaver/"):])
+		if sub == "" {
+			continue
+		}
+		if slash := strings.IndexByte(sub, '/'); slash != -1 {
+			sub = strings.TrimSpace(sub[:slash])
+		}
+		if sub == "" {
+			continue
+		}
+		return sub, sub == "blocked"
 	}
-	sub := content[idx+len("/netweaver/"):]
-	if newline := strings.Index(sub, "\n"); newline != -1 {
-		sub = sub[:newline]
-	}
-	return strings.TrimSpace(sub)
+	return "", false
 }
 
 func (s *Scanner) GetProcessTree(rootPID int) ([]int, error) {

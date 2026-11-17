@@ -3,160 +3,1547 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NetWeaver Dashboard</title>
+<title>NetWeaver — Per-App Network Orchestration</title>
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #171a21;
-    --panel-2: #1d212b;
-    --border: #2a2f3a;
-    --fg: #e6e8ee;
-    --muted: #8b93a7;
-    --accent: #7d56f4;
-    --ok: #34d399;
-    --warn: #fbbf24;
-    --err: #f87171;
+    --bg: #090A10;
+    --sidebar: #0D0E17;
+    --card: #141624;
+    --card-2: #181A2A;
+    --card-3: #1E2134;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --fg: #F1F3F9;
+    --fg-soft: #C4C9DB;
+    --muted: #868EA8;
+    --violet: #7C5DFA;
+    --violet-2: #5B46F6;
+    --violet-glow: rgba(124, 93, 250, 0.16);
+    --cyan: #38BDF8;
+    --amber: #F59E0B;
+    --pink: #EC4899;
+    --emerald: #10B981;
+    --crimson: #F43F5E;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Ubuntu, sans-serif;
   }
+
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
-    margin: 0; background: var(--bg); color: var(--fg);
-    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
+    margin: 0;
+    background:
+      radial-gradient(900px 540px at 18% -8%, rgba(124, 93, 250, 0.14), transparent 60%),
+      radial-gradient(700px 460px at 94% 4%, rgba(56, 189, 248, 0.08), transparent 55%),
+      var(--bg);
+    color: var(--fg);
+    font: 14px/1.5 var(--sans);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
   }
-  header {
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--panel);
+
+  /* App Shell */
+  .shell {
+    display: flex;
+    min-height: 100vh;
   }
-  h1 { font-size: 16px; margin: 0; letter-spacing: .2px; }
-  h1 span { color: var(--accent); }
-  .spacer { flex: 1; }
-  .status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--err); }
-  .dot.up { background: var(--ok); }
-  main { padding: 20px 24px 48px; max-width: 1180px; margin: 0 auto; }
-  section { margin-bottom: 28px; }
-  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 10px; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
-  .card {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 248px;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+    padding: 22px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    z-index: 30;
   }
-  .card .name { font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; }
-  .card .ip { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-  .rates { display: flex; gap: 18px; margin-top: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-  .rates b { color: var(--ok); font-weight: 600; }
-  .rates .up b { color: var(--warn); }
-  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-  thead th {
-    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
-    color: var(--muted); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--panel-2);
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 8px;
   }
-  tbody td { padding: 9px 12px; border-bottom: 1px solid #22262f; vertical-align: middle; }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: #1a1e27; }
-  .num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: nowrap; }
-  .muted { color: var(--muted); }
+  .brand-emblem {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--violet), var(--violet-2));
+    box-shadow: 0 6px 20px rgba(124, 93, 250, 0.42);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+  .brand-text strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .brand-text span {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+
+  .nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  .nav-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    padding: 4px 10px 6px;
+    font-weight: 600;
+  }
+  .nav a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 13.5px;
+    transition: all 0.16s ease;
+    border: 1px solid transparent;
+  }
+  .nav a svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.85; }
+  .nav a:hover {
+    color: var(--fg);
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .nav a.active {
+    color: #fff;
+    background: linear-gradient(135deg, var(--violet), var(--violet-2));
+    box-shadow: 0 8px 20px rgba(91, 70, 246, 0.34);
+  }
+  .nav a.active svg { opacity: 1; }
+  .nav-pill-count {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--fg-soft);
+  }
+  .nav a.active .nav-pill-count {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+
+  .side-summary {
+    background:
+      radial-gradient(circle at top right, rgba(124, 93, 250, 0.18), transparent 70%),
+      var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .side-summary-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .side-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .side-stat {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 8px 9px;
+  }
+  .side-stat small {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .side-stat b {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  /* Main Area */
+  .main-wrap {
+    margin-left: 248px;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top Header */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 14px 28px;
+    background: rgba(9, 10, 16, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-title h1 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .topbar-title p {
+    margin: 1px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .search-box {
+    position: relative;
+    flex: 1;
+    max-width: 380px;
+    min-width: 200px;
+    margin-left: auto;
+  }
+  .search-box svg {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 8px 30px 8px 34px;
+    border-radius: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    font-size: 13px;
+  }
+  .search-clear {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    display: none;
+  }
+  .search-clear.visible { display: block; }
+
+  .conn-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--fg-soft);
+    white-space: nowrap;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--crimson);
+    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.2);
+  }
+  .dot.up {
+    background: var(--emerald);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  }
+  .dot.warn {
+    background: var(--amber);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+  }
+
+  /* Segmented Control */
+  .seg {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 11px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    gap: 2px;
+  }
+  .seg button {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-transform: capitalize;
+  }
+  .seg button:hover { color: var(--fg); }
+  .seg button.active {
+    background: linear-gradient(135deg, var(--violet), var(--violet-2));
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(91, 70, 246, 0.35);
+  }
+  .seg button.active[data-policy="strict"] {
+    background: linear-gradient(135deg, #F43F5E, #E11D48);
+    box-shadow: 0 4px 12px rgba(244, 63, 94, 0.32);
+  }
+
+  /* Content Container */
+  .content {
+    padding: 24px 28px 60px;
+    max-width: 1440px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  section { scroll-margin-top: 84px; }
+
+  .sec-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .sec-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sec-title h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .sec-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Bento Card Base */
+  .bento {
+    background:
+      radial-gradient(circle at top right, rgba(124, 93, 250, 0.14), transparent 62%),
+      linear-gradient(180deg, rgba(24, 26, 42, 0.92), rgba(20, 22, 36, 0.98));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  /* Hero Overview Banner */
+  .hero {
+    display: grid;
+    grid-template-columns: 1.45fr 0.85fr;
+    gap: 24px;
+    padding: 24px 28px;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(520px 260px at 88% 20%, rgba(124, 93, 250, 0.22), transparent 70%),
+      radial-gradient(360px 220px at 65% 110%, rgba(56, 189, 248, 0.12), transparent 65%),
+      linear-gradient(145deg, #16182A 0%, #111320 100%);
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #C4B5FD;
+    background: rgba(124, 93, 250, 0.16);
+    border: 1px solid rgba(124, 93, 250, 0.34);
+  }
+  .hero h2 {
+    margin: 12px 0 6px;
+    font-size: 24px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 750;
+  }
+  .hero p {
+    margin: 0 0 18px;
+    color: var(--muted);
+    max-width: 580px;
+    font-size: 13.5px;
+  }
+  .hero-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .kpi {
+    background: rgba(9, 10, 16, 0.48);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .kpi-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+  .kpi-val {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--fg);
+  }
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: var(--mono);
+  }
+  .hero-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .hero-art {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+  }
+  .hero-art svg {
+    width: 100%;
+    max-width: 310px;
+    height: auto;
+    filter: drop-shadow(0 18px 36px rgba(124, 93, 250, 0.25));
+  }
+
+  /* Controls & Buttons */
   select, input, button {
-    font: inherit; color: var(--fg); background: var(--panel-2);
-    border: 1px solid var(--border); border-radius: 7px; padding: 5px 8px;
+    font: inherit;
+    color: var(--fg);
   }
-  select:focus, input:focus, button:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  button { cursor: pointer; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-  button.ghost { background: transparent; }
-  button.danger { color: var(--err); }
+  select, input[type="text"], input[type="number"], input:not([type="checkbox"]) {
+    background: #10121E;
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    padding: 7px 10px;
+    font-size: 13px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  select:focus, input:focus, button:focus-visible {
+    outline: none;
+    border-color: var(--violet);
+    box-shadow: 0 0 0 3px rgba(124, 93, 250, 0.22);
+  }
+  button {
+    cursor: pointer;
+    border-radius: 10px;
+    border: 1px solid var(--border-strong);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 7px 13px;
+    font-size: 12.5px;
+    font-weight: 600;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  button:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+  button.primary {
+    background: linear-gradient(135deg, var(--violet), var(--violet-2));
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(91, 70, 246, 0.34);
+  }
+  button.primary:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 8px 22px rgba(91, 70, 246, 0.45);
+  }
+  button.ghost {
+    background: transparent;
+    border-color: var(--border);
+  }
+  button.sm {
+    padding: 4px 9px;
+    font-size: 11.5px;
+    border-radius: 8px;
+  }
+  button.danger {
+    color: #FDA4AF;
+    border-color: rgba(244, 63, 94, 0.32);
+    background: rgba(244, 63, 94, 0.1);
+  }
+  button.danger:hover {
+    background: rgba(244, 63, 94, 0.2);
+    border-color: rgba(244, 63, 94, 0.55);
+    color: #fff;
+  }
+  button.ok-btn {
+    color: #6EE7B7;
+    border-color: rgba(16, 185, 129, 0.32);
+    background: rgba(16, 185, 129, 0.1);
+  }
+  button.ok-btn:hover {
+    background: rgba(16, 185, 129, 0.2);
+    color: #fff;
+  }
+
+  /* 3-Column Bento Interface Cards */
+  .iface-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .iface-card {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: transform 0.16s ease, border-color 0.16s ease;
+  }
+  .iface-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(124, 93, 250, 0.34);
+  }
+  .iface-card.down {
+    opacity: 0.78;
+    border-color: rgba(244, 63, 94, 0.3);
+  }
+  .iface-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .iface-id {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+  }
+  .icon-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .icon-badge.eth { background: rgba(56, 189, 248, 0.14); color: var(--cyan); border-color: rgba(56, 189, 248, 0.28); }
+  .icon-badge.wifi { background: rgba(124, 93, 250, 0.16); color: #A78BFA; border-color: rgba(124, 93, 250, 0.32); }
+  .icon-badge.usb { background: rgba(245, 158, 11, 0.15); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+  .icon-badge.vpn { background: rgba(236, 72, 153, 0.15); color: var(--pink); border-color: rgba(236, 72, 153, 0.3); }
+
+  .iface-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .iface-name {
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .iface-meta {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .health-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .health-pill.good { background: rgba(16, 185, 129, 0.13); color: #34D399; border-color: rgba(16, 185, 129, 0.28); }
+  .health-pill.warn { background: rgba(245, 158, 11, 0.14); color: #FBBF24; border-color: rgba(245, 158, 11, 0.3); }
+  .health-pill.bad  { background: rgba(244, 63, 94, 0.14); color: #FB7185; border-color: rgba(244, 63, 94, 0.32); }
+  .health-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .iface-rates {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    background: rgba(9, 10, 16, 0.42);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .rate-cell small {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .rate-cell b {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+  .rate-cell.down b { color: var(--emerald); }
+  .rate-cell.up b { color: var(--amber); }
+
+  /* Quota Progress */
+  .quota-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .quota-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11.5px;
+    gap: 8px;
+  }
+  .bar-track {
+    height: 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07);
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--emerald), #34D399);
+    transition: width 0.25s ease;
+  }
+  .bar-fill.warn { background: linear-gradient(90deg, var(--amber), #FBBF24); }
+  .bar-fill.bad { background: linear-gradient(90deg, var(--crimson), #FB7185); }
+
+  .iface-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .dns-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-soft);
+    cursor: pointer;
+    max-width: 100%;
+  }
+  .dns-chip:hover { border-color: var(--violet); color: #fff; }
+  .iface-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* Badges */
   .badge {
-    display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px;
-    border: 1px solid var(--border); color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    color: var(--fg-soft);
+    background: rgba(255, 255, 255, 0.04);
+    white-space: nowrap;
   }
-  .badge.strict { color: var(--err); border-color: #4b2530; background: #241820; }
-  .badge.failover { color: var(--ok); border-color: #1e4034; background: #16241d; }
-  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  .seg button { border: none; border-radius: 0; background: transparent; color: var(--muted); padding: 5px 12px; }
-  .seg button.active { background: var(--accent); color: #fff; }
-  .ruleform { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-  .ruleform input { min-width: 200px; }
+  .badge.clickable { cursor: pointer; transition: transform 0.12s ease, filter 0.12s ease; }
+  .badge.clickable:hover { transform: scale(1.04); filter: brightness(1.15); }
+  .badge.failover { color: #34D399; border-color: rgba(16, 185, 129, 0.34); background: rgba(16, 185, 129, 0.13); }
+  .badge.strict   { color: #FB7185; border-color: rgba(244, 63, 94, 0.36); background: rgba(244, 63, 94, 0.14); }
+  .badge.blocked  { color: #FDA4AF; border-color: rgba(244, 63, 94, 0.45); background: rgba(244, 63, 94, 0.22); }
+  .badge.profile  { color: #C4B5FD; border-color: rgba(124, 93, 250, 0.36); background: rgba(124, 93, 250, 0.15); }
+  .badge.tunnel   { color: #F472B6; border-color: rgba(236, 72, 153, 0.36); background: rgba(236, 72, 153, 0.14); }
+  .badge.metered  { color: #FBBF24; border-color: rgba(245, 158, 11, 0.36); background: rgba(245, 158, 11, 0.14); }
+  .badge.cyan     { color: #7DD3FC; border-color: rgba(56, 189, 248, 0.34); background: rgba(56, 189, 248, 0.13); }
+
+  /* Tables */
+  .table-card { overflow: hidden; }
+  .table-scroll { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 820px;
+  }
+  thead th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 700;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(9, 10, 16, 0.42);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(124, 93, 250, 0.05); }
+  tbody tr.is-blocked { background: rgba(244, 63, 94, 0.05); }
+  .num {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .muted { color: var(--muted); }
+  .app-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 240px;
+  }
+  .app-name {
+    font-weight: 650;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .app-cmd {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .row-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+    white-space: nowrap;
+  }
+  .spark svg { display: block; }
+
+  /* Filter Pills */
+  .filter-pills {
+    display: inline-flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .pill-btn {
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .pill-btn:hover { color: var(--fg); }
+  .pill-btn.active {
+    background: linear-gradient(135deg, var(--violet), var(--violet-2));
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(91, 70, 246, 0.3);
+  }
+  .pill-btn span {
+    font-family: var(--mono);
+    font-size: 11px;
+    opacity: 0.85;
+  }
+
+  /* Forms */
+  .form-panel {
+    padding: 16px 18px;
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .field label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .check-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 4px;
+    font-size: 12.5px;
+    color: var(--fg-soft);
+    cursor: pointer;
+    user-select: none;
+  }
+  .check-field input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--violet);
+    cursor: pointer;
+  }
+
+  /* Two-Column Grid for Quotas & DNS + Events */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .panel-pad { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .panel-head h3 { margin: 0; font-size: 14.5px; font-weight: 700; }
+
+  .item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .item-row {
+    background: rgba(9, 10, 16, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 11px 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .item-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  /* Live Event Feed */
+  .events-list {
+    max-height: 360px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 4px;
+  }
+  .event-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(9, 10, 16, 0.46);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .event-msg { font-size: 13px; color: var(--fg); }
+  .event-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .event-time { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 5, 10, 0.72);
+    backdrop-filter: blur(8px);
+    display: none;
+    place-items: center;
+    z-index: 60;
+    padding: 20px;
+  }
+  .modal-backdrop.open { display: grid; }
+  .modal {
+    width: 100%;
+    max-width: 440px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-head h3 { margin: 0; font-size: 16px; }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .empty { color: var(--muted); padding: 20px 14px; text-align: center; font-size: 13px; }
+
   .toast {
-    position: fixed; right: 20px; bottom: 20px; background: var(--panel-2);
-    border: 1px solid var(--border); border-left: 3px solid var(--accent);
-    padding: 10px 14px; border-radius: 8px; max-width: 380px; font-size: 13px;
-    opacity: 0; transform: translateY(8px); transition: .18s ease; pointer-events: none;
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    background: var(--card-3);
+    border: 1px solid var(--border-strong);
+    border-left: 4px solid var(--violet);
+    padding: 11px 16px;
+    border-radius: 12px;
+    max-width: 400px;
+    font-size: 13px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: 0.18s ease;
+    pointer-events: none;
+    z-index: 80;
   }
   .toast.show { opacity: 1; transform: translateY(0); }
-  .toast.error { border-left-color: var(--err); }
-  .empty { color: var(--muted); padding: 16px 12px; }
+  .toast.error { border-left-color: var(--crimson); }
+
+  /* Responsive */
+  @media (max-width: 1180px) {
+    .iface-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hero { grid-template-columns: 1fr; }
+    .hero-art { display: none; }
+    .two-col { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 880px) {
+    .sidebar {
+      position: static;
+      width: 100%;
+      flex-direction: row;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav { flex-direction: row; flex-wrap: wrap; flex: initial; }
+    .nav-label, .side-summary { display: none; }
+    .shell { flex-direction: column; }
+    .main-wrap { margin-left: 0; }
+    .iface-grid { grid-template-columns: 1fr; }
+    .hero-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .topbar { padding: 12px 16px; }
+    .content { padding: 18px 16px 48px; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>Net<span>Weaver</span> Dashboard</h1>
-  <div class="status"><span id="dot" class="dot"></span><span id="status">connecting…</span></div>
-  <div class="spacer"></div>
-  <div class="seg" id="policySeg">
-    <button data-policy="failover">failover</button>
-    <button data-policy="strict">strict</button>
-  </div>
-</header>
-
-<main>
-  <section>
-    <h2>Interfaces</h2>
-    <div class="cards" id="cards"></div>
-  </section>
-
-  <section>
-    <h2>Applications</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>PID</th><th>Application</th><th>Interface</th><th>Policy</th>
-          <th>Down</th><th>Up</th><th>Used</th><th></th>
-        </tr>
-      </thead>
-      <tbody id="apps"></tbody>
-    </table>
-  </section>
-
-  <section>
-    <h2>Auto-routing rules</h2>
-    <table>
-      <thead><tr><th>Match</th><th>Interface</th><th>Policy</th><th></th></tr></thead>
-      <tbody id="rules"></tbody>
-    </table>
-    <div class="ruleform">
-      <input id="ruleMatch" placeholder="process name, e.g. firefox or steam*" />
-      <select id="ruleIface"></select>
-      <select id="rulePolicy">
-        <option value="failover">failover</option>
-        <option value="strict">strict</option>
-      </select>
-      <button class="primary" id="ruleAdd">Add rule</button>
+<div class="shell">
+  <!-- Fixed Left Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-emblem" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L3 7l9 5 9-5-9-5z"/>
+          <path d="M3 17l9 5 9-5"/>
+          <path d="M3 12l9 5 9-5"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <strong>NetWeaver</strong>
+        <span>eBPF Socket Router</span>
+      </div>
     </div>
-  </section>
-</main>
+
+    <nav class="nav" id="sideNav">
+      <div class="nav-label">Control Plane</div>
+      <a href="#sec-overview" class="active" data-sec="sec-overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>Overview</span>
+      </a>
+      <a href="#sec-interfaces" data-sec="sec-interfaces">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+        <span>Interfaces</span>
+        <span class="nav-pill-count" id="navIfaces">0</span>
+      </a>
+      <a href="#sec-apps" data-sec="sec-apps">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+        <span>Applications</span>
+        <span class="nav-pill-count" id="navApps">0</span>
+      </a>
+      <a href="#sec-rules" data-sec="sec-rules">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+        <span>Split Rules</span>
+        <span class="nav-pill-count" id="navRules">0</span>
+      </a>
+      <a href="#sec-quotas" data-sec="sec-quotas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        <span>Quotas &amp; DNS</span>
+      </a>
+      <a href="#sec-events" data-sec="sec-events">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>Live Events</span>
+        <span class="nav-pill-count" id="navEvents">0</span>
+      </a>
+    </nav>
+
+    <div class="side-summary">
+      <div class="side-summary-head">
+        <span>Daemon Protection</span>
+        <span class="badge failover" id="sidePolicyBadge">failover</span>
+      </div>
+      <div class="side-summary-grid">
+        <div class="side-stat">
+          <small>Healthy</small>
+          <b id="sideHealthy">0/0</b>
+        </div>
+        <div class="side-stat">
+          <small>Quarantined</small>
+          <b id="sideBlocked">0</b>
+        </div>
+        <div class="side-stat">
+          <small>Routed</small>
+          <b id="sideRouted">0</b>
+        </div>
+        <div class="side-stat">
+          <small>Rate-Limited</small>
+          <b id="sideLimited">0</b>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Column -->
+  <div class="main-wrap">
+    <!-- Top Header Bar -->
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>Traffic Control Center</h1>
+        <p id="headerSummary">Waiting for daemon telemetry…</p>
+      </div>
+
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input id="searchInput" type="text" placeholder="Filter apps, PIDs, rules, domains…" aria-label="Search applications and rules" />
+        <button class="search-clear" id="searchClear" title="Clear search" type="button">×</button>
+      </div>
+
+      <div class="conn-pill" title="Live telemetry and SSE stream state">
+        <span id="dot" class="dot"></span>
+        <span id="status">connecting…</span>
+      </div>
+
+      <div class="seg" id="policySeg" title="Global default failover policy">
+        <button type="button" data-policy="failover">failover</button>
+        <button type="button" data-policy="strict">strict</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- Hero Overview Banner -->
+      <section id="sec-overview" class="bento hero">
+        <div>
+          <span class="eyebrow">Live Kernel Datapath · cgroup v2 + eBPF</span>
+          <h2>Per-Application Multi-Uplink Routing</h2>
+          <p>Steer sockets across Ethernet, Wi-Fi, metered cellular links, and VPN tunnels with live RTT health probes, token-bucket speed caps, daily quotas, and leak-proof strict quarantine.</p>
+
+          <div class="hero-kpis">
+            <div class="kpi">
+              <div class="kpi-label">Total Speed</div>
+              <div class="kpi-val" id="kpiSpeed">↓ 0 B/s</div>
+              <div class="kpi-sub" id="kpiSpeedUp">↑ 0 B/s</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Active Uplinks</div>
+              <div class="kpi-val" id="kpiUplinks">0 / 0</div>
+              <div class="kpi-sub" id="kpiUplinkSub">healthy links</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Quarantined Apps</div>
+              <div class="kpi-val" id="kpiBlocked">0</div>
+              <div class="kpi-sub" id="kpiStrictSub">0 strict</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Rules &amp; Quotas</div>
+              <div class="kpi-val" id="kpiRulesCount">0 rules</div>
+              <div class="kpi-sub" id="kpiQuotasSub">0 metered quotas</div>
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <button type="button" class="primary" id="heroEvacuateBtn">Evacuate Interface</button>
+            <button type="button" id="heroAddRuleBtn">Add Split Rule</button>
+          </div>
+        </div>
+
+        <div class="hero-art" aria-hidden="true">
+          <!-- 3D-style Faceted Glassmorphic Network Prism SVG -->
+          <svg viewBox="0 0 340 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="prismAura" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#7C5DFA" stop-opacity="0.48"/>
+                <stop offset="55%" stop-color="#38BDF8" stop-opacity="0.16"/>
+                <stop offset="100%" stop-color="#090A10" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="facetTopLeft" x1="70" y1="30" x2="170" y2="145" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#A78BFA" stop-opacity="0.92"/>
+                <stop offset="100%" stop-color="#5B46F6" stop-opacity="0.48"/>
+              </linearGradient>
+              <linearGradient id="facetTopRight" x1="170" y1="24" x2="262" y2="142" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.78"/>
+                <stop offset="100%" stop-color="#7C5DFA" stop-opacity="0.38"/>
+              </linearGradient>
+              <linearGradient id="facetBottomLeft" x1="80" y1="130" x2="170" y2="232" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#5B46F6" stop-opacity="0.72"/>
+                <stop offset="100%" stop-color="#1E1B4B" stop-opacity="0.88"/>
+              </linearGradient>
+              <linearGradient id="facetBottomRight" x1="170" y1="130" x2="262" y2="225" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#EC4899" stop-opacity="0.58"/>
+                <stop offset="100%" stop-color="#312E81" stop-opacity="0.75"/>
+              </linearGradient>
+              <linearGradient id="facetCore" x1="135" y1="88" x2="205" y2="172" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.48"/>
+                <stop offset="100%" stop-color="#7C5DFA" stop-opacity="0.12"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Soft Halo & Orbit Rings -->
+            <circle cx="170" cy="130" r="115" fill="url(#prismAura)"/>
+            <ellipse cx="170" cy="130" rx="134" ry="44" transform="rotate(-18 170 130)" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" stroke-dasharray="5 5"/>
+            <ellipse cx="170" cy="130" rx="124" ry="38" transform="rotate(22 170 130)" stroke="rgba(56,189,248,0.22)" stroke-width="1.2"/>
+
+            <!-- Back Base Shadow Facet -->
+            <polygon points="170,22 256,128 170,236 84,128" fill="#121427" fill-opacity="0.55" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>
+
+            <!-- Faceted 3D Prism Planes -->
+            <polygon points="170,22 84,128 170,152" fill="url(#facetTopLeft)" stroke="rgba(255,255,255,0.34)" stroke-width="1.1"/>
+            <polygon points="170,22 256,128 170,152" fill="url(#facetTopRight)" stroke="rgba(255,255,255,0.34)" stroke-width="1.1"/>
+            <polygon points="84,128 170,152 170,236" fill="url(#facetBottomLeft)" stroke="rgba(255,255,255,0.22)" stroke-width="1.1"/>
+            <polygon points="256,128 170,152 170,236" fill="url(#facetBottomRight)" stroke="rgba(255,255,255,0.24)" stroke-width="1.1"/>
+
+            <!-- Inner Glass Refraction Core -->
+            <polygon points="170,64 214,130 170,192 126,130" fill="url(#facetCore)" stroke="rgba(255,255,255,0.45)" stroke-width="1.2"/>
+            <line x1="170" y1="22" x2="170" y2="236" stroke="rgba(255,255,255,0.45)" stroke-width="1.1"/>
+            <line x1="84" y1="128" x2="256" y2="128" stroke="rgba(255,255,255,0.22)" stroke-width="1" stroke-dasharray="3 3"/>
+
+            <!-- Core Node & Floating Uplink Nodes -->
+            <circle cx="170" cy="130" r="8" fill="#fff" fill-opacity="0.92"/>
+            <circle cx="170" cy="130" r="15" stroke="#38BDF8" stroke-opacity="0.55" stroke-width="1.5"/>
+
+            <g>
+              <circle cx="52" cy="96" r="11" fill="#181A2A" stroke="#38BDF8" stroke-width="1.8"/>
+              <circle cx="52" cy="96" r="4" fill="#38BDF8"/>
+              <line x1="63" y1="100" x2="126" y2="128" stroke="#38BDF8" stroke-opacity="0.45" stroke-width="1.2"/>
+            </g>
+            <g>
+              <circle cx="290" cy="86" r="11" fill="#181A2A" stroke="#EC4899" stroke-width="1.8"/>
+              <circle cx="290" cy="86" r="4" fill="#EC4899"/>
+              <line x1="279" y1="92" x2="214" y2="126" stroke="#EC4899" stroke-opacity="0.45" stroke-width="1.2"/>
+            </g>
+            <g>
+              <circle cx="282" cy="186" r="10" fill="#181A2A" stroke="#10B981" stroke-width="1.8"/>
+              <circle cx="282" cy="186" r="3.5" fill="#10B981"/>
+              <line x1="272" y1="181" x2="210" y2="148" stroke="#10B981" stroke-opacity="0.45" stroke-width="1.2"/>
+            </g>
+            <g>
+              <circle cx="62" cy="182" r="10" fill="#181A2A" stroke="#F59E0B" stroke-width="1.8"/>
+              <circle cx="62" cy="182" r="3.5" fill="#F59E0B"/>
+              <line x1="72" y1="176" x2="128" y2="148" stroke="#F59E0B" stroke-opacity="0.45" stroke-width="1.2"/>
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <!-- Interfaces Bento Grid -->
+      <section id="sec-interfaces">
+        <div class="sec-head">
+          <div class="sec-title">
+            <h2>Network Uplinks &amp; Health</h2>
+            <span class="sec-sub" id="ifaceCountSub">Discovering interfaces…</span>
+          </div>
+        </div>
+        <div class="iface-grid" id="cards"></div>
+      </section>
+
+      <!-- Applications Table -->
+      <section id="sec-apps">
+        <div class="sec-head">
+          <div class="sec-title">
+            <h2>Applications</h2>
+            <span class="sec-sub">Per-PID routing, policy, speed cap &amp; quarantine</span>
+          </div>
+          <div class="filter-pills" id="appFilters">
+            <button type="button" class="pill-btn active" data-filter="all">All <span id="cnt-all">0</span></button>
+            <button type="button" class="pill-btn" data-filter="routed">Routed <span id="cnt-routed">0</span></button>
+            <button type="button" class="pill-btn" data-filter="strict">Strict <span id="cnt-strict">0</span></button>
+            <button type="button" class="pill-btn" data-filter="blocked">Blocked <span id="cnt-blocked">0</span></button>
+            <button type="button" class="pill-btn" data-filter="limited">Rate-Limited <span id="cnt-limited">0</span></button>
+          </div>
+        </div>
+
+        <div class="bento table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>PID</th>
+                  <th>Application</th>
+                  <th>Interface / Profile</th>
+                  <th>Policy</th>
+                  <th>Speed Cap</th>
+                  <th>Down</th>
+                  <th>Up</th>
+                  <th>Total</th>
+                  <th>Activity</th>
+                  <th style="text-align:right">Controls</th>
+                </tr>
+              </thead>
+              <tbody id="apps"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Auto-Routing & Split-Tunnel Rules -->
+      <section id="sec-rules">
+        <div class="sec-head">
+          <div class="sec-title">
+            <h2>Auto-Routing &amp; Split-Tunnel Rules</h2>
+            <span class="sec-sub">Supports exact names, <code>bin:</code>, <code>cmd:</code>, smart profiles &amp; domain/CIDR split tunnels</span>
+          </div>
+        </div>
+
+        <div class="bento table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Match Pattern</th>
+                  <th>Target</th>
+                  <th>Policy</th>
+                  <th>Domains / CIDRs</th>
+                  <th>Speed Cap</th>
+                  <th>Mode</th>
+                  <th style="text-align:right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="rules"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <form class="bento form-panel" id="ruleForm">
+          <div class="field">
+            <label for="ruleMatch">Pattern</label>
+            <input id="ruleMatch" type="text" placeholder="firefox, bin:curl, cmd:*-silent" />
+          </div>
+          <div class="field">
+            <label for="ruleIface">Interface / Profile</label>
+            <select id="ruleIface"></select>
+          </div>
+          <div class="field">
+            <label for="rulePolicy">Policy</label>
+            <select id="rulePolicy">
+              <option value="failover">failover</option>
+              <option value="strict">strict</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ruleDomains">Domains / CIDRs (optional)</label>
+            <input id="ruleDomains" type="text" placeholder="*.ac.in, 10.0.0.0/8" />
+          </div>
+          <div class="field">
+            <label for="ruleRateLimit">Speed Cap</label>
+            <select id="ruleRateLimit">
+              <option value="0">Unlimited</option>
+              <option value="262144">256 KiB/s</option>
+              <option value="524288">512 KiB/s</option>
+              <option value="1048576">1 MiB/s</option>
+              <option value="5242880">5 MiB/s</option>
+              <option value="10485760">10 MiB/s</option>
+            </select>
+          </div>
+          <label class="check-field">
+            <input type="checkbox" id="ruleBackground" />
+            <span>Background</span>
+          </label>
+          <div>
+            <button type="submit" class="primary" id="ruleAdd" style="width:100%">Add Rule</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Quotas & DNS + Live Events -->
+      <div class="two-col">
+        <section id="sec-quotas" class="bento panel-pad">
+          <div class="panel-head">
+            <h3>Quotas &amp; Per-Interface DNS</h3>
+            <span class="sec-sub">Metered caps &amp; custom resolvers</span>
+          </div>
+
+          <div class="item-list" id="quotasList"></div>
+
+          <form id="quotaForm" style="display:grid;grid-template-columns:1.1fr 1fr 0.7fr auto;gap:8px;align-items:end;padding-top:6px;border-top:1px solid var(--border)">
+            <div class="field">
+              <label for="quotaIface">Interface</label>
+              <select id="quotaIface"></select>
+            </div>
+            <div class="field">
+              <label for="quotaLimitMB">Daily Limit (MiB)</label>
+              <input id="quotaLimitMB" type="number" min="1" step="1" value="1024" />
+            </div>
+            <div class="field">
+              <label for="quotaWarn">Warn %</label>
+              <input id="quotaWarn" type="number" min="1" max="100" value="80" />
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <label class="check-field" style="padding:0">
+                <input id="quotaMetered" type="checkbox" checked />
+                <span>Metered</span>
+              </label>
+              <button type="submit" class="primary sm">Save</button>
+            </div>
+          </form>
+
+          <form id="dnsForm" style="display:grid;grid-template-columns:1fr 1.5fr auto;gap:8px;align-items:end;padding-top:10px;border-top:1px solid var(--border)">
+            <div class="field">
+              <label for="dnsIface">DNS Interface</label>
+              <select id="dnsIface"></select>
+            </div>
+            <div class="field">
+              <label for="dnsServers">DNS Servers (comma-separated)</label>
+              <input id="dnsServers" type="text" placeholder="1.1.1.1, 8.8.8.8" />
+            </div>
+            <div style="display:flex;gap:6px">
+              <button type="submit" class="primary sm">Set DNS</button>
+              <button type="button" class="ghost sm" id="dnsClearBtn">Clear</button>
+            </div>
+          </form>
+        </section>
+
+        <section id="sec-events" class="bento panel-pad">
+          <div class="panel-head">
+            <h3>Live Activity Feed</h3>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span class="badge cyan" id="sseBadge">SSE Connecting</span>
+              <button type="button" class="ghost sm" id="clearEventsBtn">Clear</button>
+            </div>
+          </div>
+          <div class="events-list" id="eventsList">
+            <div class="empty">Waiting for routing, failover, or quota events…</div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Switch / Evacuate Modal -->
+<div class="modal-backdrop" id="switchModal">
+  <form class="bento modal" id="switchForm">
+    <div class="modal-head">
+      <h3 id="switchModalTitle">Switch Interface Flows</h3>
+      <button type="button" class="ghost sm" data-close-modal="switchModal">×</button>
+    </div>
+    <p class="muted" style="margin:0;font-size:12.5px">Move all currently assigned processes from one interface onto another uplink or smart profile.</p>
+    <div class="field">
+      <label for="switchFrom">From Interface</label>
+      <select id="switchFrom"></select>
+    </div>
+    <div class="field">
+      <label for="switchTo">To Interface / Profile</label>
+      <select id="switchTo"></select>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="ghost" data-close-modal="switchModal">Cancel</button>
+      <button type="submit" class="primary">Switch Flows</button>
+    </div>
+  </form>
+</div>
+
+<!-- Quick Quota Modal -->
+<div class="modal-backdrop" id="quotaModal">
+  <form class="bento modal" id="quotaModalForm">
+    <div class="modal-head">
+      <h3>Configure Interface Quota</h3>
+      <button type="button" class="ghost sm" data-close-modal="quotaModal">×</button>
+    </div>
+    <div class="field">
+      <label for="qmIface">Interface</label>
+      <input id="qmIface" type="text" readonly />
+    </div>
+    <div class="field">
+      <label for="qmLimitMB">Daily Quota (MiB)</label>
+      <input id="qmLimitMB" type="number" min="1" step="1" value="2048" />
+    </div>
+    <div class="field">
+      <label for="qmWarn">Warn Threshold (%)</label>
+      <input id="qmWarn" type="number" min="1" max="100" value="80" />
+    </div>
+    <label class="check-field">
+      <input id="qmMetered" type="checkbox" checked />
+      <span>Mark interface as metered</span>
+    </label>
+    <div class="modal-actions">
+      <button type="button" class="danger" id="qmRemoveBtn">Remove Quota</button>
+      <button type="button" class="ghost" data-close-modal="quotaModal">Cancel</button>
+      <button type="submit" class="primary">Save Quota</button>
+    </div>
+  </form>
+</div>
+
+<!-- Quick DNS Modal -->
+<div class="modal-backdrop" id="dnsModal">
+  <form class="bento modal" id="dnsModalForm">
+    <div class="modal-head">
+      <h3>Edit Interface DNS</h3>
+      <button type="button" class="ghost sm" data-close-modal="dnsModal">×</button>
+    </div>
+    <div class="field">
+      <label for="dmIface">Interface</label>
+      <input id="dmIface" type="text" readonly />
+    </div>
+    <div class="field">
+      <label for="dmServers">DNS Servers (comma-separated, blank to reset)</label>
+      <input id="dmServers" type="text" placeholder="1.1.1.1, 8.8.8.8" />
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="ghost" data-close-modal="dnsModal">Cancel</button>
+      <button type="submit" class="primary">Apply DNS</button>
+    </div>
+  </form>
+</div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const state = { interfaces: [], processes: [], rules: [], policy: "failover" };
-const $ = (id) => document.getElementById(id);
+const SMART_PROFILES = ["@low-latency", "@high-bandwidth", "@unmetered"];
+const RATE_PRESETS = [
+  { bps: 0, label: "Unlimited" },
+  { bps: 256 * 1024, label: "256 KiB/s" },
+  { bps: 512 * 1024, label: "512 KiB/s" },
+  { bps: 1024 * 1024, label: "1 MiB/s" },
+  { bps: 5 * 1024 * 1024, label: "5 MiB/s" },
+  { bps: 10 * 1024 * 1024, label: "10 MiB/s" }
+];
+
+const state = {
+  interfaces: [],
+  processes: [],
+  rules: [],
+  policy: "failover",
+  quotas: [],
+  events: []
+};
+
+const ui = {
+  appFilter: "all",
+  search: "",
+  sseConnected: false,
+  daemonUp: false,
+  lastPollTime: "",
+  clearedBeforeEventId: 0
+};
+
+const sparkHistory = new Map(); // pid -> number[]
+const eventMap = new Map();     // event.id -> event
 let lastRender = "";
 let toastTimer = null;
+let eventSource = null;
+
+const $ = (id) => document.getElementById(id);
+
+function escapeHTML(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
 
 function showToast(msg, isError) {
   const el = $("toast");
   el.textContent = msg;
   el.className = "toast show" + (isError ? " error" : "");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.className = "toast"; }, 3500);
+  toastTimer = setTimeout(() => { el.className = "toast"; }, 3600);
 }
 
 function fmtBytes(v) {
   if (!v) return "0 B";
   const u = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let i = 0, f = v;
+  let i = 0, f = Number(v);
   while (f >= 1024 && i < u.length - 1) { f /= 1024; i++; }
   return (i === 0 ? f.toFixed(0) : f.toFixed(f >= 100 ? 0 : 1)) + " " + u[i];
 }
 const fmtRate = (v) => fmtBytes(v) + "/s";
+
+function fmtTime(ts) {
+  if (!ts) return "now";
+  const d = new Date(ts > 1e12 ? ts : ts * 1000);
+  return d.toLocaleTimeString([], { hour12: false });
+}
 
 async function api(path, options) {
   const res = await fetch(path, options);
@@ -165,65 +1552,438 @@ async function api(path, options) {
   return body;
 }
 
-function renderInterfaces() {
-  const box = $("cards");
-  if (!state.interfaces.length) {
-    box.innerHTML = '<div class="empty">No interfaces detected.</div>';
-    return;
-  }
-  box.innerHTML = state.interfaces.map((i) => `
-    <div class="card">
-      <div class="name"><span>${i.name}</span><span class="ip">table ${i.table_id}</span></div>
-      <div class="ip">${i.ip || "no address"}</div>
-      <div class="rates">
-        <span>↓ <b>${fmtRate(i.rx_rate)}</b></span>
-        <span class="up">↑ <b>${fmtRate(i.tx_rate)}</b></span>
-        <span class="muted">${fmtBytes((i.rx_bytes || 0) + (i.tx_bytes || 0))} total</span>
-      </div>
-    </div>`).join("");
+function interactiveFocus() {
+  const el = document.activeElement;
+  if (!el) return false;
+  return el.tagName === "SELECT" || el.tagName === "INPUT" || el.tagName === "TEXTAREA";
 }
 
-function ifaceOptions(selected) {
+function ifaceKind(iface) {
+  const n = (iface.name || "").toLowerCase();
+  if (iface.is_tunnel || /^(wg|tun|tap|tailscale|ppp|utun)/.test(n)) return "vpn";
+  if (iface.metered || /^(usb|enp.*u|rndis|wwan)/.test(n)) return "usb";
+  if (/^(wl|wlan|wlp)/.test(n)) return "wifi";
+  return "eth";
+}
+
+function ifaceIconSVG(kind) {
+  if (kind === "wifi") {
+    return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>';
+  }
+  if (kind === "vpn") {
+    return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+  }
+  if (kind === "usb") {
+    return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v14"/><path d="M8 6l4-4 4 4"/><circle cx="12" cy="19" r="3"/></svg>';
+  }
+  return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4"/><path d="M14 12h4"/></svg>';
+}
+
+function healthInfo(iface) {
+  const rtt = Number(iface.latency_ms || 0);
+  const jit = Number(iface.jitter_ms || 0);
+  const loss = Number(iface.packet_loss || 0);
+  const text = `${rtt.toFixed(1)} ms · ${jit.toFixed(1)} ms · ${loss.toFixed(1)}%`;
+
+  if (!iface.up) return { cls: "bad", label: "DOWN" };
+  if (iface.healthy === false) return { cls: "bad", label: text };
+  if (loss >= 1 || rtt >= 120 || (iface.health_score > 0 && iface.health_score < 70)) {
+    return { cls: "warn", label: text };
+  }
+  return { cls: "good", label: text };
+}
+
+function quotaForIface(iface) {
+  const q = state.quotas.find((item) => item.interface === iface.name);
+  const limit = Number(iface.daily_quota_bytes || (q ? q.daily_limit_bytes : 0));
+  const used = Number(iface.daily_used_bytes || (q ? q.used_bytes : 0));
+  const warnPct = Number((q && q.warn_percent) || 80);
+  const metered = Boolean(iface.metered || (q && q.metered));
+  const exceeded = Boolean(iface.quota_exceeded || (limit > 0 && used >= limit));
+  return { limit, used, warnPct, metered, exceeded, config: q };
+}
+
+function updateSparklines() {
+  const activePIDs = new Set();
+  for (const p of state.processes) {
+    activePIDs.add(p.pid);
+    const totalRate = Number(p.rx_rate || 0) + Number(p.tx_rate || 0);
+    let hist = sparkHistory.get(p.pid);
+    if (!hist) {
+      hist = [];
+      sparkHistory.set(p.pid, hist);
+    }
+    hist.push(totalRate);
+    if (hist.length > 20) hist.shift();
+  }
+  for (const pid of sparkHistory.keys()) {
+    if (!activePIDs.has(pid)) sparkHistory.delete(pid);
+  }
+}
+
+function sparklineSVG(pid, blocked) {
+  const samples = sparkHistory.get(pid) || [0];
+  const w = 74, h = 22, pad = 2;
+  const max = Math.max(...samples, 1);
+  const pts = samples.map((val, idx) => {
+    const x = samples.length === 1 ? w : (idx / (samples.length - 1)) * w;
+    const y = h - pad - ((val / max) * (h - pad * 2));
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const stroke = blocked ? "#F43F5E" : (max > 1 ? "#38BDF8" : "rgba(255,255,255,0.22)");
+  const line = samples.length === 1 ? `0,${h - pad} ${w},${h - pad}` : pts.join(" ");
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+    <polyline fill="none" stroke="${stroke}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" points="${line}"/>
+  </svg>`;
+}
+
+function syncSelectOptions(selectEl, optionsHtml, preferredValue) {
+  const prev = preferredValue !== undefined ? preferredValue : selectEl.value;
+  selectEl.innerHTML = optionsHtml;
+  if (prev && Array.from(selectEl.options).some((o) => o.value === prev)) {
+    selectEl.value = prev;
+  }
+}
+
+function renderSummaryAndHero() {
+  const totalRx = state.interfaces.reduce((acc, i) => acc + Number(i.rx_rate || 0), 0);
+  const totalTx = state.interfaces.reduce((acc, i) => acc + Number(i.tx_rate || 0), 0);
+  const upCount = state.interfaces.filter((i) => i.up && i.healthy !== false).length;
+  const routedCount = state.processes.filter((p) => p.assigned_interface || p.profile).length;
+  const blockedCount = state.processes.filter((p) => p.blocked).length;
+  const strictCount = state.processes.filter((p) => p.policy === "strict").length;
+  const limitedCount = state.processes.filter((p) => Number(p.rate_limit_bps || 0) > 0).length;
+
+  $("kpiSpeed").textContent = "↓ " + fmtRate(totalRx);
+  $("kpiSpeedUp").textContent = "↑ " + fmtRate(totalTx);
+  $("kpiUplinks").textContent = `${upCount} / ${state.interfaces.length}`;
+  $("kpiUplinkSub").textContent = state.interfaces.filter((i) => i.metered).length + " metered";
+  $("kpiBlocked").textContent = String(blockedCount);
+  $("kpiStrictSub").textContent = `${strictCount} strict`;
+  $("kpiRulesCount").textContent = `${state.rules.length} rules`;
+  $("kpiQuotasSub").textContent = `${state.quotas.length} metered quotas`;
+
+  $("navIfaces").textContent = String(state.interfaces.length);
+  $("navApps").textContent = String(state.processes.length);
+  $("navRules").textContent = String(state.rules.length);
+
+  $("sideHealthy").textContent = `${upCount}/${state.interfaces.length}`;
+  $("sideBlocked").textContent = String(blockedCount);
+  $("sideRouted").textContent = String(routedCount);
+  $("sideLimited").textContent = String(limitedCount);
+
+  const sidePol = $("sidePolicyBadge");
+  sidePol.textContent = state.policy;
+  sidePol.className = "badge " + (state.policy === "strict" ? "strict" : "failover");
+
+  $("headerSummary").textContent = `${upCount} healthy uplinks · ${routedCount} routed apps · ${blockedCount} quarantined`;
+}
+
+function renderInterfaces() {
+  const box = $("cards");
+  $("ifaceCountSub").textContent = `${state.interfaces.length} discovered uplink${state.interfaces.length === 1 ? "" : "s"}`;
+
+  if (!state.interfaces.length) {
+    box.innerHTML = '<div class="bento empty" style="grid-column:1/-1">No active network interfaces detected.</div>';
+  } else {
+    box.innerHTML = state.interfaces.map((i) => {
+      const kind = ifaceKind(i);
+      const health = healthInfo(i);
+      const q = quotaForIface(i);
+      const pct = q.limit > 0 ? Math.min(100, (q.used / q.limit) * 100) : 0;
+      const barCls = q.exceeded || pct >= 100 ? "bad" : (pct >= q.warnPct ? "warn" : "");
+      const dnsList = Array.isArray(i.dns_servers) && i.dns_servers.length ? i.dns_servers.join(", ") : "System default";
+      const safeName = escapeHTML(i.name);
+
+      const tags = [];
+      if (i.is_tunnel) tags.push('<span class="badge tunnel">TUNNEL</span>');
+      if (q.metered) tags.push('<span class="badge metered">METERED</span>');
+      if (q.exceeded) tags.push('<span class="badge blocked">QUOTA EXCEEDED</span>');
+
+      return `
+        <article class="bento iface-card ${i.up ? "" : "down"}" data-iface="${safeName}">
+          <div class="iface-top">
+            <div class="iface-id">
+              <div class="icon-badge ${kind}">${ifaceIconSVG(kind)}</div>
+              <div style="min-width:0">
+                <div class="iface-name-row">
+                  <span class="iface-name">${safeName}</span>
+                  ${tags.join("")}
+                </div>
+                <div class="iface-meta">IP ${escapeHTML(i.ip || "none")} · GW ${escapeHTML(i.gateway || "—")} · tbl ${i.table_id}</div>
+              </div>
+            </div>
+            <span class="health-pill ${health.cls}"><span class="health-dot"></span>${escapeHTML(health.label)}</span>
+          </div>
+
+          <div class="iface-rates">
+            <div class="rate-cell down"><small>Down</small><b>${fmtRate(i.rx_rate)}</b></div>
+            <div class="rate-cell up"><small>Up</small><b>${fmtRate(i.tx_rate)}</b></div>
+            <div class="rate-cell"><small>Total</small><b>${fmtBytes((i.rx_bytes || 0) + (i.tx_bytes || 0))}</b></div>
+          </div>
+
+          <div class="quota-box">
+            ${q.limit > 0 ? `
+              <div class="quota-row">
+                <span class="muted">Daily Quota (${pct.toFixed(0)}%)</span>
+                <span class="num">${fmtBytes(q.used)} / ${fmtBytes(q.limit)}</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill ${barCls}" style="width:${pct.toFixed(1)}%"></div></div>
+            ` : `
+              <div class="quota-row">
+                <span class="muted">${q.metered ? "Metered · No daily cap" : "Unmetered · Unlimited"}</span>
+                <button type="button" class="ghost sm" data-role="open-quota" data-iface="${safeName}">Set Quota</button>
+              </div>
+            `}
+          </div>
+
+          <div class="iface-foot">
+            <button type="button" class="dns-chip" data-role="open-dns" data-iface="${safeName}" title="Edit DNS servers for ${safeName}">
+              <span>DNS: ${escapeHTML(dnsList)}</span>
+            </button>
+            <div class="iface-btns">
+              ${q.limit > 0 ? `<button type="button" class="ghost sm" data-role="open-quota" data-iface="${safeName}">Quota</button>` : ""}
+              <button type="button" class="ghost sm" data-role="evacuate" data-iface="${safeName}">Evacuate</button>
+              <button type="button" class="sm" data-role="route-all" data-iface="${safeName}">Route All</button>
+            </div>
+          </div>
+        </article>`;
+    }).join("");
+  }
+
+  // Keep form & modal interface selects updated cleanly without losing current user pick
+  const ifaceOpts = state.interfaces.map((i) => `<option value="${escapeHTML(i.name)}">${escapeHTML(i.name)}</option>`).join("");
+  const targetOpts = ifaceOpts + SMART_PROFILES.map((p) => `<option value="${p}">${p}</option>`).join("");
+  syncSelectOptions($("ruleIface"), targetOpts);
+  syncSelectOptions($("quotaIface"), ifaceOpts);
+  syncSelectOptions($("dnsIface"), ifaceOpts);
+  syncSelectOptions($("switchFrom"), ifaceOpts);
+  syncSelectOptions($("switchTo"), targetOpts);
+}
+
+function appIfaceOptions(proc) {
+  const selected = (proc.assigned_interface && proc.assigned_interface.startsWith("@"))
+    ? proc.assigned_interface
+    : (proc.assigned_interface || proc.profile || "");
   const opts = ['<option value="">(default)</option>'];
   for (const i of state.interfaces) {
-    opts.push(`<option value="${i.name}" ${i.name === selected ? "selected" : ""}>${i.name}</option>`);
+    const safe = escapeHTML(i.name);
+    const rtt = i.latency_ms ? ` (${Number(i.latency_ms).toFixed(0)}ms)` : "";
+    opts.push(`<option value="${safe}" ${i.name === selected ? "selected" : ""}>${safe}${rtt}</option>`);
+  }
+  const profiles = [...SMART_PROFILES];
+  if (proc.profile && !profiles.includes(proc.profile) && proc.profile.startsWith("@")) {
+    profiles.push(proc.profile);
+  }
+  for (const prof of profiles) {
+    opts.push(`<option value="${escapeHTML(prof)}" ${prof === selected ? "selected" : ""}>${escapeHTML(prof)}</option>`);
   }
   return opts.join("");
 }
 
+function rateOptions(currentBps) {
+  const bps = Number(currentBps || 0);
+  let hasPreset = RATE_PRESETS.some((r) => r.bps === bps);
+  const opts = RATE_PRESETS.map((r) =>
+    `<option value="${r.bps}" ${r.bps === bps ? "selected" : ""}>${r.label}</option>`
+  );
+  if (!hasPreset && bps > 0) {
+    opts.push(`<option value="${bps}" selected>${fmtRate(bps)}</option>`);
+  }
+  return opts.join("");
+}
+
+function matchesSearch(haystacks, query) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  return haystacks.some((v) => String(v || "").toLowerCase().includes(q));
+}
+
 function renderApps() {
+  const procs = state.processes;
+  const routed = procs.filter((p) => p.assigned_interface || p.profile);
+  const strict = procs.filter((p) => p.policy === "strict");
+  const blocked = procs.filter((p) => p.blocked);
+  const limited = procs.filter((p) => Number(p.rate_limit_bps || 0) > 0);
+
+  $("cnt-all").textContent = String(procs.length);
+  $("cnt-routed").textContent = String(routed.length);
+  $("cnt-strict").textContent = String(strict.length);
+  $("cnt-blocked").textContent = String(blocked.length);
+  $("cnt-limited").textContent = String(limited.length);
+
+  for (const btn of $("appFilters").querySelectorAll("button")) {
+    btn.classList.toggle("active", btn.dataset.filter === ui.appFilter);
+  }
+
+  let filtered = procs;
+  if (ui.appFilter === "routed") filtered = routed;
+  else if (ui.appFilter === "strict") filtered = strict;
+  else if (ui.appFilter === "blocked") filtered = blocked;
+  else if (ui.appFilter === "limited") filtered = limited;
+
+  filtered = filtered.filter((p) =>
+    matchesSearch([p.pid, p.name, p.cmdline, p.assigned_interface, p.profile, p.policy], ui.search)
+  );
+
   const body = $("apps");
-  if (!state.processes.length) {
-    body.innerHTML = '<tr><td colspan="8" class="empty">No user applications detected.</td></tr>';
+  if (!filtered.length) {
+    body.innerHTML = '<tr><td colspan="10" class="empty">No matching applications.</td></tr>';
     return;
   }
-  body.innerHTML = state.processes.map((p) => `
-    <tr data-pid="${p.pid}">
-      <td class="num muted">${p.pid}</td>
-      <td>${escapeHTML(p.name)}</td>
-      <td><select data-role="iface">${ifaceOptions(p.assigned_interface)}</select></td>
-      <td>${p.assigned_interface ? `<span class="badge ${p.policy}">${p.policy || "failover"}</span>` : '<span class="muted">—</span>'}</td>
-      <td class="num">${fmtRate(p.rx_rate)}</td>
-      <td class="num">${fmtRate(p.tx_rate)}</td>
-      <td class="num muted">${fmtBytes((p.rx_bytes || 0) + (p.tx_bytes || 0))}</td>
-      <td><button class="ghost danger" data-role="reset">reset</button></td>
-    </tr>`).join("");
+
+  body.innerHTML = filtered.map((p) => {
+    const effPolicy = p.policy || state.policy || "failover";
+    const profileTag = p.profile ? `<span class="badge profile">${escapeHTML(p.profile)}</span>` : "";
+    const blockedTag = p.blocked ? `<span class="badge blocked">BLOCKED</span>` : "";
+    return `
+      <tr data-pid="${p.pid}" class="${p.blocked ? "is-blocked" : ""}">
+        <td class="num muted">${p.pid}</td>
+        <td>
+          <div class="app-cell">
+            <div class="app-name">${escapeHTML(p.name)} ${profileTag} ${blockedTag}</div>
+            <div class="app-cmd" title="${escapeHTML(p.cmdline || "")}">${escapeHTML(p.cmdline || "")}</div>
+          </div>
+        </td>
+        <td><select data-role="iface">${appIfaceOptions(p)}</select></td>
+        <td>
+          <button type="button" class="badge clickable ${effPolicy === "strict" ? "strict" : "failover"}" data-role="toggle-policy" data-policy="${escapeHTML(effPolicy)}" title="Click to toggle failover / strict">
+            ${escapeHTML(effPolicy)}
+          </button>
+        </td>
+        <td><select data-role="ratelimit">${rateOptions(p.rate_limit_bps)}</select></td>
+        <td class="num">${fmtRate(p.rx_rate)}</td>
+        <td class="num">${fmtRate(p.tx_rate)}</td>
+        <td class="num muted">${fmtBytes((p.rx_bytes || 0) + (p.tx_bytes || 0))}</td>
+        <td class="spark">${sparklineSVG(p.pid, p.blocked)}</td>
+        <td>
+          <div class="row-actions">
+            <button type="button" class="sm ${p.blocked ? "ok-btn" : "danger"}" data-role="block" data-blocked="${p.blocked ? "1" : "0"}">
+              ${p.blocked ? "Unblock" : "Block"}
+            </button>
+            <button type="button" class="ghost sm" data-role="reset">Reset</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join("");
 }
 
 function renderRules() {
   const body = $("rules");
-  if (!state.rules.length) {
-    body.innerHTML = '<tr><td colspan="4" class="empty">No rules yet — launches matching a rule are routed automatically.</td></tr>';
-  } else {
-    body.innerHTML = state.rules.map((r) => `
+  const filtered = state.rules.filter((r) =>
+    matchesSearch([r.match, r.interface, r.policy, ...(r.domains || [])], ui.search)
+  );
+  if (!filtered.length) {
+    body.innerHTML = '<tr><td colspan="7" class="empty">No matching rules yet — launches matching a rule are routed automatically.</td></tr>';
+    return;
+  }
+  body.innerHTML = filtered.map((r) => {
+    const isProfile = (r.interface || "").startsWith("@");
+    const domainsHtml = (r.domains && r.domains.length)
+      ? r.domains.map((d) => `<span class="badge cyan">${escapeHTML(d)}</span>`).join(" ")
+      : '<span class="muted">—</span>';
+    const capText = r.rate_limit_bps ? fmtRate(r.rate_limit_bps) : '<span class="muted">Unlimited</span>';
+    const bgTag = r.background ? '<span class="badge metered">Background</span>' : '<span class="muted">Normal</span>';
+    return `
       <tr data-match="${escapeHTML(r.match)}">
         <td class="num">${escapeHTML(r.match)}</td>
-        <td class="num">${r.interface}</td>
-        <td><span class="badge ${r.policy || "failover"}">${r.policy || "failover"}</span></td>
-        <td><button class="ghost danger" data-role="delrule">delete</button></td>
-      </tr>`).join("");
+        <td class="num"><span class="badge ${isProfile ? "profile" : ""}">${escapeHTML(r.interface)}</span></td>
+        <td><span class="badge ${r.policy === "strict" ? "strict" : "failover"}">${escapeHTML(r.policy || "failover")}</span></td>
+        <td>${domainsHtml}</td>
+        <td class="num">${capText}</td>
+        <td>${bgTag}</td>
+        <td style="text-align:right"><button type="button" class="danger sm" data-role="delrule">Delete</button></td>
+      </tr>`;
+  }).join("");
+}
+
+function renderQuotas() {
+  const list = $("quotasList");
+  const rows = [];
+
+  for (const q of state.quotas) {
+    const ifaceObj = state.interfaces.find((i) => i.name === q.interface);
+    const used = Number((ifaceObj && ifaceObj.daily_used_bytes) || q.used_bytes || 0);
+    const limit = Number(q.daily_limit_bytes || 0);
+    const pct = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+    const warnPct = Number(q.warn_percent || 80);
+    const barCls = pct >= 100 ? "bad" : (pct >= warnPct ? "warn" : "");
+    rows.push(`
+      <div class="item-row">
+        <div class="item-row-top">
+          <div style="display:flex;align-items:center;gap:8px">
+            <strong>${escapeHTML(q.interface)}</strong>
+            ${q.metered ? '<span class="badge metered">Metered</span>' : ""}
+            <span class="muted num" style="font-size:11px">warn @ ${warnPct}%</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="num">${fmtBytes(used)} / ${limit > 0 ? fmtBytes(limit) : "Unlimited"}</span>
+            <button type="button" class="danger sm" data-role="del-quota" data-iface="${escapeHTML(q.interface)}">Remove</button>
+          </div>
+        </div>
+        ${limit > 0 ? `<div class="bar-track"><div class="bar-fill ${barCls}" style="width:${pct.toFixed(1)}%"></div></div>` : ""}
+      </div>
+    `);
   }
-  $("ruleIface").innerHTML = state.interfaces.map((i) => `<option value="${i.name}">${i.name}</option>`).join("");
+
+  // Also show per-interface DNS summary chips if any interface has DNS servers
+  for (const i of state.interfaces) {
+    if (Array.isArray(i.dns_servers) && i.dns_servers.length) {
+      rows.push(`
+        <div class="item-row">
+          <div class="item-row-top">
+            <div><strong>${escapeHTML(i.name)}</strong> <span class="badge cyan">DNS Override</span></div>
+            <div class="num">${escapeHTML(i.dns_servers.join(", "))}</div>
+          </div>
+        </div>
+      `);
+    }
+  }
+
+  list.innerHTML = rows.length
+    ? rows.join("")
+    : '<div class="empty">No custom daily quotas or DNS overrides configured yet.</div>';
+}
+
+function renderEvents() {
+  const list = $("eventsList");
+  const sorted = Array.from(eventMap.values())
+    .filter((ev) => ui.clearedBeforeEventId === 0 || Number(ev.id || 0) > ui.clearedBeforeEventId)
+    .sort((a, b) => Number(b.id || 0) - Number(a.id || 0))
+    .slice(0, 80);
+
+  $("navEvents").textContent = String(sorted.length);
+
+  if (!sorted.length) {
+    list.innerHTML = '<div class="empty">Waiting for routing, failover, or quota events…</div>';
+    return;
+  }
+
+  list.innerHTML = sorted.map((ev) => {
+    const t = (ev.type || "event").toLowerCase();
+    let badgeCls = "profile";
+    if (t.includes("failover") || t.includes("switch")) badgeCls = "metered";
+    else if (t.includes("block") || t.includes("strict") || t.includes("exceed")) badgeCls = "strict";
+    else if (t.includes("assign") || t.includes("ok") || t.includes("recover")) badgeCls = "failover";
+    else if (t.includes("dns") || t.includes("rate")) badgeCls = "cyan";
+
+    const details = [];
+    if (ev.app) details.push(ev.app);
+    if (ev.pid) details.push(`PID ${ev.pid}`);
+    if (ev.from_interface && ev.interface) details.push(`${ev.from_interface} → ${ev.interface}`);
+    else if (ev.interface) details.push(ev.interface);
+    if (ev.policy) details.push(ev.policy);
+
+    return `
+      <div class="event-row">
+        <span class="badge ${badgeCls}">${escapeHTML(ev.type || "event")}</span>
+        <div>
+          <div class="event-msg">${escapeHTML(ev.message || "State updated")}</div>
+          ${details.length ? `<div class="event-meta">${escapeHTML(details.join(" · "))}</div>` : ""}
+        </div>
+        <span class="event-time">${fmtTime(ev.timestamp)}</span>
+      </div>`;
+  }).join("");
 }
 
 function renderPolicy() {
@@ -232,100 +1992,583 @@ function renderPolicy() {
   }
 }
 
-function escapeHTML(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
-function render() {
+function renderAll() {
+  renderSummaryAndHero();
   renderInterfaces();
   renderApps();
   renderRules();
+  renderQuotas();
   renderPolicy();
+  renderEvents();
 }
 
-function interactiveFocus() {
-  const el = document.activeElement;
-  return el && (el.tagName === "SELECT" || el.tagName === "INPUT");
+function updateConnStatus() {
+  const dot = $("dot");
+  const st = $("status");
+  const badge = $("sseBadge");
+
+  if (!ui.daemonUp) {
+    dot.className = "dot";
+    badge.className = "badge strict";
+    badge.textContent = "Disconnected";
+    return;
+  }
+
+  if (ui.sseConnected) {
+    dot.className = "dot up";
+    st.textContent = "Live SSE · " + (ui.lastPollTime || "now");
+    badge.className = "badge failover";
+    badge.textContent = "SSE Stream Active";
+  } else {
+    dot.className = "dot warn";
+    st.textContent = "Polling · " + (ui.lastPollTime || "now");
+    badge.className = "badge metered";
+    badge.textContent = "Polling Fallback";
+  }
+}
+
+function mergeEvents(list) {
+  if (!Array.isArray(list) || !list.length) return false;
+  let changed = false;
+  for (const ev of list) {
+    if (!ev) continue;
+    const key = ev.id || `${ev.timestamp}-${ev.type}-${ev.message}`;
+    if (!eventMap.has(key)) {
+      eventMap.set(key, ev);
+      changed = true;
+    }
+  }
+  if (eventMap.size > 200) {
+    const keys = Array.from(eventMap.keys()).slice(0, eventMap.size - 200);
+    for (const k of keys) eventMap.delete(k);
+  }
+  return changed;
 }
 
 async function refresh() {
   try {
     const next = await api("/api/state");
-    $("dot").classList.add("up");
-    $("status").textContent = "connected · " + new Date().toLocaleTimeString();
-    const key = JSON.stringify(next);
+    ui.daemonUp = true;
+    ui.lastPollTime = new Date().toLocaleTimeString([], { hour12: false });
+    updateConnStatus();
+
     state.interfaces = next.interfaces || [];
     state.processes = next.processes || [];
     state.rules = next.rules || [];
     state.policy = next.policy || "failover";
+    state.quotas = next.quotas || [];
+    state.events = next.events || [];
+
+    updateSparklines();
+    const evChanged = mergeEvents(state.events);
+    if (evChanged) renderEvents();
+
+    const key = JSON.stringify({
+      interfaces: state.interfaces,
+      processes: state.processes,
+      rules: state.rules,
+      policy: state.policy,
+      quotas: state.quotas,
+      appFilter: ui.appFilter,
+      search: ui.search
+    });
+
     if (key !== lastRender && !interactiveFocus()) {
       lastRender = key;
-      render();
+      renderSummaryAndHero();
+      renderInterfaces();
+      renderApps();
+      renderRules();
+      renderQuotas();
+      renderPolicy();
     }
   } catch (err) {
-    $("dot").classList.remove("up");
+    ui.daemonUp = false;
     $("status").textContent = "daemon unavailable: " + err.message;
+    updateConnStatus();
   }
 }
 
-$("apps").addEventListener("change", async (ev) => {
-  const row = ev.target.closest("tr");
-  if (!row || ev.target.dataset.role !== "iface") return;
-  const pid = Number(row.dataset.pid);
-  const iface = ev.target.value;
-  try {
-    if (iface) await api("/api/assign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pid, interface: iface }) });
-    else await api("/api/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pid }) });
-    showToast(iface ? `PID ${pid} routed via ${iface}` : `PID ${pid} back on default route`);
-    await refresh();
-  } catch (err) { showToast(err.message, true); }
+function connectSSE() {
+  if (typeof EventSource === "undefined") return;
+  if (eventSource) {
+    eventSource.close();
+  }
+  eventSource = new EventSource("/api/events?stream=1");
+  eventSource.onopen = () => {
+    ui.sseConnected = true;
+    updateConnStatus();
+  };
+  eventSource.onmessage = (msg) => {
+    ui.sseConnected = true;
+    ui.daemonUp = true;
+    updateConnStatus();
+    try {
+      const ev = JSON.parse(msg.data);
+      if (mergeEvents([ev])) {
+        renderEvents();
+      }
+    } catch (_) {}
+  };
+  eventSource.onerror = () => {
+    ui.sseConnected = false;
+    updateConnStatus();
+  };
+}
+
+function openModal(id) {
+  $(id).classList.add("open");
+}
+
+function closeModal(id) {
+  $(id).classList.remove("open");
+}
+
+function openSwitchModal(fromIface, toIface) {
+  if (!state.interfaces.length) {
+    showToast("No interfaces available to switch", true);
+    return;
+  }
+  const names = state.interfaces.map((i) => i.name);
+  const from = fromIface || names[0];
+  let to = toIface || names.find((n) => n !== from) || SMART_PROFILES[0];
+  $("switchFrom").value = from;
+  $("switchTo").value = to;
+  openModal("switchModal");
+}
+
+function openQuotaModal(iface) {
+  const existing = state.quotas.find((q) => q.interface === iface);
+  const ifaceObj = state.interfaces.find((i) => i.name === iface);
+  const bytes = Number((existing && existing.daily_limit_bytes) || (ifaceObj && ifaceObj.daily_quota_bytes) || 2048 * 1024 * 1024);
+  $("qmIface").value = iface;
+  $("qmLimitMB").value = Math.max(1, Math.round(bytes / (1024 * 1024)));
+  $("qmWarn").value = (existing && existing.warn_percent) || 80;
+  $("qmMetered").checked = existing ? existing.metered : true;
+  openModal("quotaModal");
+}
+
+function openDNSModal(iface) {
+  const ifaceObj = state.interfaces.find((i) => i.name === iface);
+  $("dmIface").value = iface;
+  $("dmServers").value = (ifaceObj && Array.isArray(ifaceObj.dns_servers)) ? ifaceObj.dns_servers.join(", ") : "";
+  openModal("dnsModal");
+}
+
+// Sidebar Active Tracking
+$("sideNav").addEventListener("click", (ev) => {
+  const link = ev.target.closest("a");
+  if (!link) return;
+  for (const a of $("sideNav").querySelectorAll("a")) a.classList.remove("active");
+  link.classList.add("active");
 });
 
-$("apps").addEventListener("click", async (ev) => {
-  if (ev.target.dataset.role !== "reset") return;
-  const row = ev.target.closest("tr");
-  const pid = Number(row.dataset.pid);
-  try {
-    await api("/api/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pid }) });
-    showToast(`PID ${pid} back on default route`);
-    await refresh();
-  } catch (err) { showToast(err.message, true); }
+// Search
+$("searchInput").addEventListener("input", () => {
+  ui.search = $("searchInput").value.trim();
+  $("searchClear").classList.toggle("visible", ui.search.length > 0);
+  lastRender = "";
+  renderApps();
+  renderRules();
 });
 
-$("rules").addEventListener("click", async (ev) => {
-  if (ev.target.dataset.role !== "delrule") return;
-  const match = ev.target.closest("tr").dataset.match;
-  try {
-    await api("/api/rules?match=" + encodeURIComponent(match), { method: "DELETE" });
-    showToast(`Rule removed: ${match}`);
-    await refresh();
-  } catch (err) { showToast(err.message, true); }
+$("searchClear").addEventListener("click", () => {
+  $("searchInput").value = "";
+  ui.search = "";
+  $("searchClear").classList.remove("visible");
+  lastRender = "";
+  renderApps();
+  renderRules();
 });
 
-$("ruleAdd").addEventListener("click", async () => {
-  const match = $("ruleMatch").value.trim();
-  const iface = $("ruleIface").value;
-  const policy = $("rulePolicy").value;
-  if (!match || !iface) { showToast("Match and interface are required", true); return; }
-  try {
-    await api("/api/rules", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ match, interface: iface, policy }) });
-    $("ruleMatch").value = "";
-    showToast(`Rule saved: ${match} → ${iface} [${policy}]`);
-    await refresh();
-  } catch (err) { showToast(err.message, true); }
+// Hero Buttons
+$("heroEvacuateBtn").addEventListener("click", () => openSwitchModal());
+$("heroAddRuleBtn").addEventListener("click", () => {
+  $("sec-rules").scrollIntoView({ behavior: "smooth" });
+  setTimeout(() => $("ruleMatch").focus(), 200);
 });
 
+// Global Policy Segmented Control
 $("policySeg").addEventListener("click", async (ev) => {
   const btn = ev.target.closest("button");
   if (!btn) return;
   try {
-    const res = await api("/api/policy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ policy: btn.dataset.policy }) });
+    const res = await api("/api/policy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ policy: btn.dataset.policy })
+    });
     showToast(`Default policy: ${res.policy}`);
+    lastRender = "";
     await refresh();
-  } catch (err) { showToast(err.message, true); }
+  } catch (err) {
+    showToast(err.message, true);
+  }
 });
 
+// Interface Card Actions
+$("cards").addEventListener("click", (ev) => {
+  const btn = ev.target.closest("button[data-role]");
+  if (!btn) return;
+  const iface = btn.dataset.iface;
+  const role = btn.dataset.role;
+  if (role === "open-quota") openQuotaModal(iface);
+  else if (role === "open-dns") openDNSModal(iface);
+  else if (role === "evacuate") openSwitchModal(iface, "");
+  else if (role === "route-all") {
+    const other = state.interfaces.find((i) => i.name !== iface);
+    openSwitchModal(other ? other.name : iface, iface);
+  }
+});
+
+// App Filter Pills
+$("appFilters").addEventListener("click", (ev) => {
+  const btn = ev.target.closest("button[data-filter]");
+  if (!btn) return;
+  ui.appFilter = btn.dataset.filter;
+  lastRender = "";
+  renderApps();
+});
+
+// Applications Dropdowns (Interface/Profile & Speed Cap)
+$("apps").addEventListener("change", async (ev) => {
+  const row = ev.target.closest("tr");
+  if (!row) return;
+  const pid = Number(row.dataset.pid);
+  const role = ev.target.dataset.role;
+
+  try {
+    if (role === "iface") {
+      const iface = ev.target.value;
+      if (iface) {
+        await api("/api/assign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pid, interface: iface })
+        });
+        showToast(`PID ${pid} routed via ${iface}`);
+      } else {
+        await api("/api/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pid })
+        });
+        showToast(`PID ${pid} back on default route`);
+      }
+    } else if (role === "ratelimit") {
+      const bps = Number(ev.target.value || 0);
+      await api("/api/ratelimit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pid, rate_limit_bps: bps })
+      });
+      showToast(bps > 0 ? `PID ${pid} speed cap set to ${fmtRate(bps)}` : `PID ${pid} speed cap removed`);
+    } else {
+      return;
+    }
+    ev.target.blur();
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+// Applications Clicks (Policy Toggle, Block/Unblock, Reset)
+$("apps").addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("button[data-role]");
+  if (!btn) return;
+  const row = btn.closest("tr");
+  const pid = Number(row.dataset.pid);
+  const role = btn.dataset.role;
+
+  try {
+    if (role === "toggle-policy") {
+      const nextPolicy = btn.dataset.policy === "strict" ? "failover" : "strict";
+      await api("/api/process-policy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pid, policy: nextPolicy })
+      });
+      showToast(`PID ${pid} policy → ${nextPolicy}`);
+    } else if (role === "block") {
+      const nextBlocked = btn.dataset.blocked !== "1";
+      await api("/api/block", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pid, blocked: nextBlocked })
+      });
+      showToast(nextBlocked ? `PID ${pid} quarantined (blocked)` : `PID ${pid} unblocked`);
+    } else if (role === "reset") {
+      await api("/api/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pid })
+      });
+      showToast(`PID ${pid} back on default route`);
+    } else {
+      return;
+    }
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+// Rules Actions
+$("rules").addEventListener("click", async (ev) => {
+  const btn = ev.target.closest('button[data-role="delrule"]');
+  if (!btn) return;
+  const match = btn.closest("tr").dataset.match;
+  try {
+    await api("/api/rules?match=" + encodeURIComponent(match), { method: "DELETE" });
+    showToast(`Rule removed: ${match}`);
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+$("ruleForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const match = $("ruleMatch").value.trim();
+  const iface = $("ruleIface").value;
+  const policy = $("rulePolicy").value;
+  const domainsRaw = $("ruleDomains").value.trim();
+  const domains = domainsRaw ? domainsRaw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean) : [];
+  const rateLimitBps = Number($("ruleRateLimit").value || 0);
+  const background = $("ruleBackground").checked;
+
+  if (!match || !iface) {
+    showToast("Pattern and interface/profile are required", true);
+    return;
+  }
+
+  try {
+    await api("/api/rules", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        match,
+        interface: iface,
+        policy,
+        domains,
+        rate_limit_bps: rateLimitBps,
+        background
+      })
+    });
+    $("ruleMatch").value = "";
+    $("ruleDomains").value = "";
+    $("ruleRateLimit").value = "0";
+    $("ruleBackground").checked = false;
+    $("ruleMatch").blur();
+    showToast(`Rule saved: ${match} → ${iface} [${policy}]`);
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+// Quotas & DNS Inline Forms
+$("quotasList").addEventListener("click", async (ev) => {
+  const btn = ev.target.closest('button[data-role="del-quota"]');
+  if (!btn) return;
+  const iface = btn.dataset.iface;
+  try {
+    await api("/api/quota?interface=" + encodeURIComponent(iface), { method: "DELETE" });
+    showToast(`Quota removed for ${iface}`);
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+$("quotaForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const iface = $("quotaIface").value;
+  const mb = Number($("quotaLimitMB").value || 0);
+  const warn = Number($("quotaWarn").value || 80);
+  const metered = $("quotaMetered").checked;
+  if (!iface || mb <= 0) {
+    showToast("Interface and positive daily limit are required", true);
+    return;
+  }
+  try {
+    await api("/api/quota", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        interface: iface,
+        metered,
+        daily_limit_bytes: Math.round(mb * 1024 * 1024),
+        warn_percent: warn
+      })
+    });
+    document.activeElement?.blur();
+    showToast(`Quota saved for ${iface}: ${mb} MiB/day`);
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+$("dnsForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const iface = $("dnsIface").value;
+  const servers = $("dnsServers").value.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+  if (!iface) {
+    showToast("Select an interface first", true);
+    return;
+  }
+  try {
+    await api("/api/dns", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ interface: iface, dns_servers: servers })
+    });
+    document.activeElement?.blur();
+    showToast(servers.length ? `DNS updated for ${iface}` : `DNS cleared for ${iface}`);
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+$("dnsClearBtn").addEventListener("click", async () => {
+  const iface = $("dnsIface").value;
+  if (!iface) return;
+  try {
+    await api("/api/dns", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ interface: iface, dns_servers: [] })
+    });
+    $("dnsServers").value = "";
+    showToast(`DNS cleared for ${iface}`);
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+// Events Clear
+$("clearEventsBtn").addEventListener("click", () => {
+  let maxId = ui.clearedBeforeEventId;
+  for (const ev of eventMap.values()) {
+    if (Number(ev.id || 0) > maxId) maxId = Number(ev.id);
+  }
+  ui.clearedBeforeEventId = maxId;
+  renderEvents();
+});
+
+// Modals
+document.addEventListener("click", (ev) => {
+  const closeBtn = ev.target.closest("[data-close-modal]");
+  if (closeBtn) {
+    closeModal(closeBtn.dataset.closeModal);
+    return;
+  }
+  if (ev.target.classList.contains("modal-backdrop")) {
+    ev.target.classList.remove("open");
+  }
+});
+
+$("switchForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const fromIface = $("switchFrom").value;
+  const toIface = $("switchTo").value;
+  if (!fromIface || !toIface) {
+    showToast("Select both source and destination", true);
+    return;
+  }
+  try {
+    const res = await api("/api/switch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from_interface: fromIface, to_interface: toIface })
+    });
+    closeModal("switchModal");
+    showToast(`Moved ${res.moved || 0} process(es) from ${fromIface} → ${toIface}`);
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+$("quotaModalForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const iface = $("qmIface").value;
+  const mb = Number($("qmLimitMB").value || 0);
+  const warn = Number($("qmWarn").value || 80);
+  const metered = $("qmMetered").checked;
+  if (!iface || mb <= 0) {
+    showToast("Positive daily quota required", true);
+    return;
+  }
+  try {
+    await api("/api/quota", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        interface: iface,
+        metered,
+        daily_limit_bytes: Math.round(mb * 1024 * 1024),
+        warn_percent: warn
+      })
+    });
+    closeModal("quotaModal");
+    showToast(`Quota saved for ${iface}: ${mb} MiB/day`);
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+$("qmRemoveBtn").addEventListener("click", async () => {
+  const iface = $("qmIface").value;
+  if (!iface) return;
+  try {
+    await api("/api/quota?interface=" + encodeURIComponent(iface), { method: "DELETE" });
+    closeModal("quotaModal");
+    showToast(`Quota removed for ${iface}`);
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+$("dnsModalForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const iface = $("dmIface").value;
+  const servers = $("dmServers").value.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+  try {
+    await api("/api/dns", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ interface: iface, dns_servers: servers })
+    });
+    closeModal("dnsModal");
+    showToast(servers.length ? `DNS applied for ${iface}` : `DNS cleared for ${iface}`);
+    lastRender = "";
+    await refresh();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+// Boot
 refresh();
+connectSSE();
 setInterval(refresh, 1500);
 </script>
 </body>

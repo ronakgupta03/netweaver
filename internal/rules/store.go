@@ -49,16 +49,21 @@ func (s *Store) Load() error {
 	if err := json.Unmarshal(data, &f); err != nil {
 		return fmt.Errorf("parsing rules: %w", err)
 	}
+	var loaded []types.Rule
 	for _, r := range f.Rules {
 		if r.Match == "" || r.Interface == "" {
 			continue
 		}
-		s.rules = append(s.rules, types.Rule{
-			Match:     r.Match,
-			Interface: r.Interface,
-			Policy:    r.NormalizedPolicy(),
+		loaded = append(loaded, types.Rule{
+			Match:        r.Match,
+			Interface:    r.Interface,
+			Policy:       r.NormalizedPolicy(),
+			Domains:      cleanStrings(r.Domains),
+			RateLimitBps: r.RateLimitBps,
+			Background:   r.Background,
 		})
 	}
+	s.rules = loaded
 	return nil
 }
 
@@ -88,7 +93,10 @@ func (s *Store) List() []types.Rule {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	out := make([]types.Rule, len(s.rules))
-	copy(out, s.rules)
+	for i, r := range s.rules {
+		r.Domains = cleanStrings(r.Domains)
+		out[i] = r
+	}
 	return out
 }
 
@@ -102,10 +110,14 @@ func (s *Store) Add(rule types.Rule) error {
 	if rule.Interface == "" {
 		return errors.New("rule interface is required")
 	}
+	if !types.IsVirtualProfile(rule.Interface) && !types.ValidInterfaceName(rule.Interface) {
+		return fmt.Errorf("invalid interface or virtual profile %q", rule.Interface)
+	}
 	if !types.ValidPolicy(rule.Policy) {
 		return fmt.Errorf("unknown policy %q (use failover or strict)", rule.Policy)
 	}
 	rule.Policy = rule.NormalizedPolicy()
+	rule.Domains = cleanStrings(rule.Domains)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -118,6 +130,23 @@ func (s *Store) Add(rule types.Rule) error {
 	}
 	s.rules = append(s.rules, rule)
 	return s.saveLocked()
+}
+
+func cleanStrings(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(in))
+	for _, v := range in {
+		v = strings.TrimSpace(v)
+		if v != "" {
+			out = append(out, v)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func (s *Store) Remove(match string) error {
@@ -145,7 +174,11 @@ func (s *Store) Clear() error {
 func (s *Store) Match(name, cmdline string) (types.Rule, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return matchRules(s.rules, name, cmdline)
+	r, ok := matchRules(s.rules, name, cmdline)
+	if ok {
+		r.Domains = cleanStrings(r.Domains)
+	}
+	return r, ok
 }
 
 // matchRules resolves a rule against a process.

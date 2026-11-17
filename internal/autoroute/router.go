@@ -13,18 +13,27 @@ import (
 	"netweaver/internal/rules"
 )
 
+const defaultScanInterval = 500 * time.Millisecond
+
 // Assigner applies interface bindings for a process (and its children).
 type Assigner interface {
 	Assign(pid int, iface string) error
 	Current(pid int) string
 }
 
+// OptsAssigner is optionally implemented alongside Assigner by backends that
+// apply per-process policy and rate-limit options during auto-routing.
+type OptsAssigner interface {
+	AssignWithOpts(pid int, iface, policy string, rateLimitBps uint64) error
+}
+
 // Event records one auto-applied rule.
 type Event struct {
-	PID       int
-	Name      string
-	Interface string
-	Policy    string
+	PID          int
+	Name         string
+	Interface    string
+	Policy       string
+	RateLimitBps uint64
 }
 
 // Router watches /proc for processes matching persisted rules and binds them.
@@ -32,21 +41,27 @@ type Router struct {
 	store    *rules.Store
 	assigner Assigner
 	procRoot string
-	interval time.Duration
 
+	scanMu    sync.Mutex
 	mu        sync.Mutex
+	interval  time.Duration
 	handled   map[int]string
 	version   uint64
 	listeners []func(Event)
+
+	triggerCh chan struct{}
+	resetCh   chan struct{}
 }
 
 func NewRouter(store *rules.Store, assigner Assigner) *Router {
 	return &Router{
-		store:    store,
-		assigner: assigner,
-		procRoot: "/proc",
-		interval: 2 * time.Second,
-		handled:  make(map[int]string),
+		store:     store,
+		assigner:  assigner,
+		procRoot:  "/proc",
+		interval:  defaultScanInterval,
+		handled:   make(map[int]string),
+		triggerCh: make(chan struct{}, 1),
+		resetCh:   make(chan struct{}, 1),
 	}
 }
 
@@ -54,6 +69,33 @@ func NewRouterWithProcRoot(store *rules.Store, assigner Assigner, procRoot strin
 	r := NewRouter(store, assigner)
 	r.procRoot = procRoot
 	return r
+}
+
+// SetInterval updates the periodic background scan interval (ignoring d <= 0).
+func (r *Router) SetInterval(d time.Duration) {
+	if d <= 0 {
+		return
+	}
+	r.mu.Lock()
+	r.interval = d
+	r.mu.Unlock()
+	if r.resetCh != nil {
+		select {
+		case r.resetCh <- struct{}{}:
+		default:
+		}
+	}
+}
+
+// TriggerScan wakes a running Router loop immediately without blocking.
+func (r *Router) TriggerScan() {
+	if r.triggerCh == nil {
+		return
+	}
+	select {
+	case r.triggerCh <- struct{}{}:
+	default:
+	}
 }
 
 // OnAssign registers a callback invoked for every newly applied rule.
@@ -64,15 +106,34 @@ func (r *Router) OnAssign(fn func(Event)) {
 }
 
 func (r *Router) Start(ctx context.Context) {
+	r.mu.Lock()
+	curInterval := r.interval
+	r.mu.Unlock()
+	if curInterval <= 0 {
+		curInterval = defaultScanInterval
+	}
+
 	go func() {
-		ticker := time.NewTicker(r.interval)
+		ticker := time.NewTicker(curInterval)
 		defer ticker.Stop()
+
+		r.ScanOnce()
 		for {
-			r.ScanOnce()
 			select {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
+				r.ScanOnce()
+			case <-r.triggerCh:
+				r.ScanOnce()
+			case <-r.resetCh:
+				r.mu.Lock()
+				next := r.interval
+				r.mu.Unlock()
+				if next > 0 && next != curInterval {
+					curInterval = next
+					ticker.Reset(curInterval)
+				}
 			}
 		}
 	}()
@@ -80,6 +141,9 @@ func (r *Router) Start(ctx context.Context) {
 
 // ScanOnce applies rules to every not-yet-handled user process.
 func (r *Router) ScanOnce() []Event {
+	r.scanMu.Lock()
+	defer r.scanMu.Unlock()
+
 	version := r.store.Version()
 
 	r.mu.Lock()
@@ -87,7 +151,10 @@ func (r *Router) ScanOnce() []Event {
 		r.version = version
 		r.handled = make(map[int]string)
 	}
-	handled := r.handled
+	handled := make(map[int]string, len(r.handled))
+	for k, v := range r.handled {
+		handled[k] = v
+	}
 	r.mu.Unlock()
 
 	entries, err := os.ReadDir(r.procRoot)
@@ -97,6 +164,7 @@ func (r *Router) ScanOnce() []Event {
 
 	live := make(map[int]bool, len(entries))
 	var events []Event
+	optsAssigner, hasOpts := r.assigner.(OptsAssigner)
 
 	for _, entry := range entries {
 		pid, err := strconv.Atoi(entry.Name())
@@ -126,11 +194,26 @@ func (r *Router) ScanOnce() []Event {
 			r.markHandled(pid, rule.Interface)
 			continue
 		}
-		if err := r.assigner.Assign(pid, rule.Interface); err != nil {
+
+		policy := rule.NormalizedPolicy()
+		var assignErr error
+		if hasOpts {
+			assignErr = optsAssigner.AssignWithOpts(pid, rule.Interface, policy, rule.RateLimitBps)
+		} else {
+			assignErr = r.assigner.Assign(pid, rule.Interface)
+		}
+		if assignErr != nil {
 			continue // retry on the next scan
 		}
+
 		r.markHandled(pid, rule.Interface)
-		events = append(events, Event{PID: pid, Name: name, Interface: rule.Interface, Policy: rule.NormalizedPolicy()})
+		events = append(events, Event{
+			PID:          pid,
+			Name:         name,
+			Interface:    rule.Interface,
+			Policy:       policy,
+			RateLimitBps: rule.RateLimitBps,
+		})
 	}
 
 	r.pruneHandled(live)

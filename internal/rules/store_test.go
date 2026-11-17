@@ -112,3 +112,67 @@ func TestVersionBumpsOnMutation(t *testing.T) {
 		t.Fatal("version did not bump on remove")
 	}
 }
+
+func TestExtendedRuleFieldsAndVirtualProfiles(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "rules.json")
+
+	s := NewStore(path)
+	if err := s.Add(types.Rule{
+		Match:        "firefox",
+		Interface:    types.ProfileLowLatency,
+		Policy:       types.PolicyStrict,
+		Domains:      []string{"*.meet.google.com", " zoom.us "},
+		RateLimitBps: 2_000_000,
+		Background:   false,
+	}); err != nil {
+		t.Fatalf("add virtual profile rule: %v", err)
+	}
+	if err := s.Add(types.Rule{
+		Match:        "rsync",
+		Interface:    "@bulk",
+		RateLimitBps: 500_000,
+		Background:   true,
+	}); err != nil {
+		t.Fatalf("add bulk rule: %v", err)
+	}
+	for _, prof := range []string{types.ProfileHighBandwidth, types.ProfileUnmetered} {
+		if err := s.Add(types.Rule{Match: "app-" + prof, Interface: prof}); err != nil {
+			t.Fatalf("add %s rule: %v", prof, err)
+		}
+	}
+
+	if err := s.Add(types.Rule{Match: "bad", Interface: "@unknown"}); err == nil {
+		t.Fatal("expected error for unknown virtual profile")
+	}
+	if err := s.Add(types.Rule{Match: "bad2", Interface: "../evil"}); err == nil {
+		t.Fatal("expected error for invalid interface name")
+	}
+
+	reloaded := NewStore(path)
+	if err := reloaded.Load(); err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+
+	ff, ok := reloaded.Match("firefox", "")
+	if !ok {
+		t.Fatal("expected firefox match after reload")
+	}
+	if ff.Interface != types.ProfileLowLatency {
+		t.Fatalf("firefox interface = %q, want %q", ff.Interface, types.ProfileLowLatency)
+	}
+	if ff.RateLimitBps != 2_000_000 {
+		t.Fatalf("firefox rate_limit_bps = %d, want 2000000", ff.RateLimitBps)
+	}
+	if len(ff.Domains) != 2 || ff.Domains[0] != "*.meet.google.com" || ff.Domains[1] != "zoom.us" {
+		t.Fatalf("firefox domains = %#v, want [*.meet.google.com zoom.us]", ff.Domains)
+	}
+
+	rs, ok := reloaded.Match("rsync", "")
+	if !ok {
+		t.Fatal("expected rsync match after reload")
+	}
+	if !rs.Background || rs.RateLimitBps != 500_000 || rs.Interface != "@bulk" {
+		t.Fatalf("unexpected rsync rule: %+v", rs)
+	}
+}

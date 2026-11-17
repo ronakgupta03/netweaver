@@ -3,10 +3,13 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"netweaver/internal/api"
+	"netweaver/internal/telemetry"
 	"netweaver/internal/types"
 )
 
@@ -23,25 +26,13 @@ func handleRules(client *api.Client, args []string) {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-		if len(list) == 0 {
-			fmt.Println("No auto-routing rules defined.")
-			return
-		}
-		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(w, "MATCH\tINTERFACE\tPOLICY")
-		for _, r := range list {
-			fmt.Fprintf(w, "%s\t%s\t%s\n", r.Match, r.Interface, r.NormalizedPolicy())
-		}
-		_ = w.Flush()
+		renderRulesList(os.Stdout, list)
 
 	case "add":
-		if len(args) < 3 {
-			fmt.Println("Usage: netweaver rules add <match> <interface> [failover|strict]")
+		rule, err := parseRuleAddArgs(args[1:])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
-		}
-		rule := types.Rule{Match: args[1], Interface: args[2]}
-		if len(args) > 3 {
-			rule.Policy = args[3]
 		}
 		if err := client.AddRule(rule); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -79,4 +70,30 @@ func handleRules(client *api.Client, args []string) {
 		fmt.Println("Commands: list, add, remove, clear")
 		os.Exit(1)
 	}
+}
+
+func renderRulesList(out io.Writer, list []types.Rule) {
+	if len(list) == 0 {
+		fmt.Fprintln(out, "No auto-routing rules defined.")
+		return
+	}
+	w := tabwriter.NewWriter(out, 0, 4, 2, ' ', 0)
+	fmt.Fprintln(w, "MATCH\tINTERFACE\tPOLICY\tRATE CAP\tBACKGROUND\tDOMAINS")
+	for _, r := range list {
+		rate := "unlimited"
+		if r.RateLimitBps > 0 {
+			rate = telemetry.FormatRate(float64(r.RateLimitBps))
+		}
+		bg := "no"
+		if r.Background {
+			bg = "yes"
+		}
+		domains := "-"
+		if len(r.Domains) > 0 {
+			domains = strings.Join(r.Domains, ",")
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+			r.Match, r.Interface, r.NormalizedPolicy(), rate, bg, domains)
+	}
+	_ = w.Flush()
 }

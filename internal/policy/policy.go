@@ -52,7 +52,7 @@ func (m *Manager) Load() error {
 	if err := json.Unmarshal(data, &f); err != nil {
 		return fmt.Errorf("parsing policy settings: %w", err)
 	}
-	if f.DefaultPolicy == types.PolicyStrict {
+	if strings.EqualFold(strings.TrimSpace(f.DefaultPolicy), types.PolicyStrict) {
 		m.def = types.PolicyStrict
 	} else {
 		m.def = types.PolicyFailover
@@ -78,20 +78,36 @@ func (m *Manager) Default() string {
 }
 
 func (m *Manager) SetDefault(p string) error {
-	if !types.ValidPolicy(p) || p == "" {
+	norm := strings.ToLower(strings.TrimSpace(p))
+	if norm != types.PolicyFailover && norm != types.PolicyStrict {
 		return fmt.Errorf("unknown policy %q (use failover or strict)", p)
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.def = p
+	m.def = norm
 	return m.saveLocked()
 }
 
-// Set records the policy chosen for a PID at assignment time.
+// Set records the explicit policy chosen for a PID at assignment time.
+// Empty values clear any explicit override; invalid policy values are ignored.
 func (m *Manager) Set(pid int, p string) {
+	norm := strings.ToLower(strings.TrimSpace(p))
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.byPID[pid] = p
+	switch norm {
+	case types.PolicyFailover, types.PolicyStrict:
+		m.byPID[pid] = norm
+	case "":
+		delete(m.byPID, pid)
+	}
+}
+
+// HasExplicit reports whether a PID has an explicitly assigned policy override.
+func (m *Manager) HasExplicit(pid int) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	_, ok := m.byPID[pid]
+	return ok
 }
 
 func (m *Manager) Forget(pid int) {

@@ -3,6 +3,8 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -70,10 +72,18 @@ func (s *Server) handleConn(conn net.Conn) {
 			resp.Processes = procs
 		}
 	case "route.assign":
-		if err := s.backend.AssignRoute(req.PID, req.Interface); err != nil {
-			resp.Error = err.Error()
+		if ext, ok := s.backend.(ExtendedBackend); ok && (req.Policy != "" || req.RateLimitBps > 0) {
+			if err := ext.AssignRouteWithOpts(req.PID, req.Interface, req.Policy, req.RateLimitBps); err != nil {
+				resp.Error = err.Error()
+			} else {
+				resp.Success = true
+			}
 		} else {
-			resp.Success = true
+			if err := s.backend.AssignRoute(req.PID, req.Interface); err != nil {
+				resp.Error = err.Error()
+			} else {
+				resp.Success = true
+			}
 		}
 	case "route.reset":
 		if err := s.backend.ResetRoute(req.PID); err != nil {
@@ -110,11 +120,69 @@ func (s *Server) handleConn(conn net.Conn) {
 		} else {
 			resp.Success = true
 		}
+	case "process.policy":
+		s.applyExtended(&resp, req.Method, func(ext ExtendedBackend) error {
+			return ext.SetProcessPolicy(req.PID, req.Policy)
+		})
+	case "process.block":
+		s.applyExtended(&resp, req.Method, func(ext ExtendedBackend) error {
+			return ext.BlockProcess(req.PID, req.Blocked)
+		})
+	case "process.ratelimit":
+		s.applyExtended(&resp, req.Method, func(ext ExtendedBackend) error {
+			return ext.SetProcessRateLimit(req.PID, req.RateLimitBps)
+		})
+	case "interface.switch":
+		s.applyExtended(&resp, req.Method, func(ext ExtendedBackend) error {
+			moved, err := ext.SwitchInterface(req.FromInterface, req.ToInterface)
+			if err == nil {
+				resp.MovedCount = moved
+			}
+			return err
+		})
+	case "quota.list":
+		s.applyExtended(&resp, req.Method, func(ext ExtendedBackend) error {
+			resp.Quotas = ext.ListQuotas()
+			return nil
+		})
+	case "quota.set":
+		s.applyExtended(&resp, req.Method, func(ext ExtendedBackend) error {
+			if req.Quota == nil {
+				return errors.New("missing quota payload")
+			}
+			return ext.SetQuota(*req.Quota)
+		})
+	case "quota.remove":
+		s.applyExtended(&resp, req.Method, func(ext ExtendedBackend) error {
+			return ext.RemoveQuota(req.Interface)
+		})
+	case "dns.set":
+		s.applyExtended(&resp, req.Method, func(ext ExtendedBackend) error {
+			return ext.SetInterfaceDNS(req.Interface, req.DNSServers)
+		})
+	case "events.list":
+		s.applyExtended(&resp, req.Method, func(ext ExtendedBackend) error {
+			resp.Events = ext.ListEvents(req.Since)
+			return nil
+		})
 	default:
 		resp.Error = "unknown method"
 	}
 
 	_ = json.NewEncoder(conn).Encode(resp)
+}
+
+func (s *Server) applyExtended(resp *Response, method string, fn func(ExtendedBackend) error) {
+	ext, ok := s.backend.(ExtendedBackend)
+	if !ok {
+		resp.Error = fmt.Sprintf("backend does not support extended operation %q", method)
+		return
+	}
+	if err := fn(ext); err != nil {
+		resp.Error = err.Error()
+		return
+	}
+	resp.Success = true
 }
 
 func (s *Server) Stop() {

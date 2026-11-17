@@ -28,8 +28,8 @@ type ifaceRaw struct {
 	tx uint64
 }
 
-// Engine samples socket and interface counters on a fixed interval and keeps
-// derived rates plus cumulative usage.
+// Engine samples socket, cgroup eBPF, and interface counters on a fixed
+// interval and keeps derived rates plus cumulative usage.
 type Engine struct {
 	mu sync.RWMutex
 
@@ -48,20 +48,31 @@ type Engine struct {
 	ifaceRate    map[string]Rate
 
 	ssOK bool
+
+	cgroupStatsReader  func(iface string) (rx, tx uint64, ok bool)
+	processStatsReader func(pid int) (rx, tx uint64, ok bool)
+	procBytesFn        func() (map[int]ProcBytes, error)
+
+	trackedMu     sync.Mutex
+	trackedPIDs   map[int]time.Time
+	trackedIfaces map[string]struct{}
 }
 
 func NewEngine() *Engine {
 	return &Engine{
-		sysNetRoot:   "/sys/class/net",
-		interval:     time.Second,
-		now:          time.Now,
-		lastRawProc:  make(map[int]ProcBytes),
-		procUsage:    make(map[int]ProcBytes),
-		procRate:     make(map[int]Rate),
-		lastSeen:     make(map[int]time.Time),
-		lastRawIface: make(map[string]ifaceRaw),
-		ifaceRate:    make(map[string]Rate),
-		ssOK:         true,
+		sysNetRoot:    "/sys/class/net",
+		interval:      time.Second,
+		now:           time.Now,
+		lastRawProc:   make(map[int]ProcBytes),
+		procUsage:     make(map[int]ProcBytes),
+		procRate:      make(map[int]Rate),
+		lastSeen:      make(map[int]time.Time),
+		lastRawIface:  make(map[string]ifaceRaw),
+		ifaceRate:     make(map[string]Rate),
+		ssOK:          true,
+		procBytesFn:   collectProcessBytes,
+		trackedPIDs:   make(map[int]time.Time),
+		trackedIfaces: make(map[string]struct{}),
 	}
 }
 
@@ -69,6 +80,60 @@ func NewEngineWithRoot(root string) *Engine {
 	e := NewEngine()
 	e.sysNetRoot = root
 	return e
+}
+
+// SetCgroupStatsReader configures an eBPF per-interface cgroup stats reader.
+// When fn returns ok == true for an interface, Engine uses those exact kernel
+// counters instead of sysfs statistics.
+func (e *Engine) SetCgroupStatsReader(fn func(iface string) (rx, tx uint64, ok bool)) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.cgroupStatsReader = fn
+}
+
+// SetProcessStatsReader configures an eBPF per-process cgroup stats reader.
+// When fn returns ok == true for a PID, Engine uses those exact kernel counters
+// (capturing TCP, UDP, QUIC, and ICMP) and falls back to `ss` otherwise.
+func (e *Engine) SetProcessStatsReader(fn func(pid int) (rx, tx uint64, ok bool)) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.processStatsReader = fn
+}
+
+// TrackPID registers a PID to be polled via the processStatsReader on every Sample.
+func (e *Engine) TrackPID(pid int) {
+	if pid <= 0 {
+		return
+	}
+	e.recordTrackedPIDs(pid)
+}
+
+// TrackInterface registers an interface name to be polled via cgroupStatsReader.
+func (e *Engine) TrackInterface(iface string) {
+	if iface == "" || iface == "lo" {
+		return
+	}
+	e.recordTrackedIface(iface)
+}
+
+func (e *Engine) recordTrackedPIDs(pids ...int) {
+	now := e.now()
+	e.trackedMu.Lock()
+	for _, pid := range pids {
+		if pid > 0 {
+			e.trackedPIDs[pid] = now
+		}
+	}
+	e.trackedMu.Unlock()
+}
+
+func (e *Engine) recordTrackedIface(iface string) {
+	if iface == "" || iface == "lo" {
+		return
+	}
+	e.trackedMu.Lock()
+	e.trackedIfaces[iface] = struct{}{}
+	e.trackedMu.Unlock()
 }
 
 // Start samples immediately and then on the configured interval until ctx ends.
@@ -105,12 +170,44 @@ func (e *Engine) Sample() {
 }
 
 func (e *Engine) sampleProcesses(elapsed float64, now time.Time) {
-	raw, err := collectProcessBytes()
+	raw, err := e.procBytesFn()
 	if err != nil {
 		e.ssOK = false
-		return
+		if e.processStatsReader == nil {
+			return
+		}
+		raw = make(map[int]ProcBytes)
+	} else {
+		e.ssOK = true
 	}
-	e.ssOK = true
+
+	if e.processStatsReader != nil {
+		candidates := make(map[int]struct{}, len(raw)+len(e.lastRawProc)+len(e.procUsage))
+		for pid := range raw {
+			candidates[pid] = struct{}{}
+		}
+		for pid := range e.lastRawProc {
+			candidates[pid] = struct{}{}
+		}
+		for pid := range e.procUsage {
+			candidates[pid] = struct{}{}
+		}
+		e.trackedMu.Lock()
+		for pid, seen := range e.trackedPIDs {
+			if now.Sub(seen) > 10*time.Minute {
+				delete(e.trackedPIDs, pid)
+				continue
+			}
+			candidates[pid] = struct{}{}
+		}
+		e.trackedMu.Unlock()
+
+		for pid := range candidates {
+			if rx, tx, ok := e.processStatsReader(pid); ok {
+				raw[pid] = ProcBytes{Rx: rx, Tx: tx}
+			}
+		}
+	}
 
 	for pid, cur := range raw {
 		prev := e.lastRawProc[pid]
@@ -147,14 +244,39 @@ func (e *Engine) sampleProcesses(elapsed float64, now time.Time) {
 
 func (e *Engine) sampleInterfaces(elapsed float64) {
 	entries, err := os.ReadDir(e.sysNetRoot)
-	if err != nil {
+	if err != nil && e.cgroupStatsReader == nil {
 		return
 	}
-	current := make(map[string]ifaceRaw, len(entries))
+	names := make(map[string]struct{}, len(entries)+len(e.lastRawIface))
 	for _, entry := range entries {
 		name := entry.Name()
 		if name == "lo" {
 			continue
+		}
+		names[name] = struct{}{}
+	}
+	if e.cgroupStatsReader != nil {
+		for name := range e.lastRawIface {
+			if name != "lo" {
+				names[name] = struct{}{}
+			}
+		}
+		e.trackedMu.Lock()
+		for name := range e.trackedIfaces {
+			if name != "lo" {
+				names[name] = struct{}{}
+			}
+		}
+		e.trackedMu.Unlock()
+	}
+
+	current := make(map[string]ifaceRaw, len(names))
+	for name := range names {
+		if e.cgroupStatsReader != nil {
+			if rx, tx, ok := e.cgroupStatsReader(name); ok {
+				current[name] = ifaceRaw{rx: rx, tx: tx}
+				continue
+			}
 		}
 		rx, okRx := readCounter(filepath.Join(e.sysNetRoot, name, "statistics", "rx_bytes"))
 		tx, okTx := readCounter(filepath.Join(e.sysNetRoot, name, "statistics", "tx_bytes"))
@@ -204,32 +326,52 @@ func readCounter(path string) (uint64, bool) {
 func (e *Engine) ProcessUsage(pid int) (ProcBytes, Rate) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	return e.procUsage[pid], e.procRate[pid]
+	e.recordTrackedPIDs(pid)
+	usage, ok := e.procUsage[pid]
+	rate := e.procRate[pid]
+	if !ok && e.processStatsReader != nil {
+		if rx, tx, found := e.processStatsReader(pid); found {
+			usage = ProcBytes{Rx: rx, Tx: tx}
+		}
+	}
+	return usage, rate
 }
 
 // InterfaceUsage returns cumulative bytes and the last rate for an interface.
 func (e *Engine) InterfaceUsage(name string) (IfaceUsage, Rate) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	raw := e.lastRawIface[name]
+	e.recordTrackedIface(name)
+	raw, seen := e.lastRawIface[name]
+	if !seen && e.cgroupStatsReader != nil {
+		if rx, tx, ok := e.cgroupStatsReader(name); ok {
+			return IfaceUsage{Rx: rx, Tx: tx}, Rate{}
+		}
+	}
 	return IfaceUsage{Rx: raw.rx, Tx: raw.tx}, e.ifaceRate[name]
 }
 
-// SocketAccountingAvailable reports whether per-process TCP counters could be read.
+// SocketAccountingAvailable reports whether per-process byte counters could be read.
 func (e *Engine) SocketAccountingAvailable() bool {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	return e.ssOK
+	return e.ssOK || e.processStatsReader != nil
 }
 
 // SubtreeUsage aggregates cumulative bytes and rates over a set of PIDs.
 func (e *Engine) SubtreeUsage(pids []int) (ProcBytes, Rate) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
+	e.recordTrackedPIDs(pids...)
 	var usage ProcBytes
 	var rate Rate
 	for _, pid := range pids {
-		u := e.procUsage[pid]
+		u, ok := e.procUsage[pid]
+		if !ok && e.processStatsReader != nil {
+			if rx, tx, found := e.processStatsReader(pid); found {
+				u = ProcBytes{Rx: rx, Tx: tx}
+			}
+		}
 		usage.Rx += u.Rx
 		usage.Tx += u.Tx
 		r := e.procRate[pid]
