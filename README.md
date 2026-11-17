@@ -66,7 +66,108 @@ flowchart LR
 
 ---
 
-## Build
+## Installation & Running by OS
+
+NetWeaver relies on Linux kernel features (**cgroups v2**, **eBPF `cgroup_skb`**, **nftables**, **iproute2**, and **RTNetlink**). It runs natively on Linux, and via a Linux environment on Windows (WSL2) and macOS (Linux VM).
+
+### 1. Linux (Arch Linux — Native)
+
+1. **Install dependencies:**
+   ```bash
+   sudo pacman -S --needed go nftables iproute2 procps-ng make
+   # Optional: clang (only if editing eBPF C code) and libnotify (for desktop alerts)
+   sudo pacman -S --needed clang libnotify
+   ```
+2. **Clone & build:**
+   ```bash
+   git clone https://github.com/ronakgupta03/netweaver.git
+   cd netweaver
+   make build        # produces bin/netweaverd and bin/netweaver
+   ```
+3. **Start the daemon (Terminal 1, requires root):**
+   ```bash
+   sudo ./bin/netweaverd
+   ```
+4. **Open the UI (Terminal 2, unprivileged):**
+   ```bash
+   ./bin/netweaver                 # interactive Terminal UI (TUI)
+   ./bin/netweaver web --open      # Web Dashboard at http://127.0.0.1:8088
+   ```
+   *(Optional: on Hyprland/Waybar, see the [Waybar custom module example](#waybar-custom-module-example) below, or install `scripts/netweaver.service` for systemd.)*
+
+---
+
+### 2. Windows (via WSL2)
+
+> **Note:** `netweaverd` cannot run natively on the Windows kernel because it requires Linux cgroups v2, eBPF, and `nftables`. Run it inside **WSL2**, where it manages processes and virtual interfaces inside the WSL2 Linux environment.
+
+1. **Install WSL2** (run in PowerShell as Administrator, then reboot if prompted):
+   ```powershell
+   wsl --install
+   ```
+2. **Open your WSL2 terminal** (e.g. Ubuntu) and install dependencies:
+   ```bash
+   sudo apt update
+   sudo apt install -y git make golang nftables iproute2 procps
+   ```
+3. **Clone & build inside WSL2:**
+   ```bash
+   git clone https://github.com/ronakgupta03/netweaver.git
+   cd netweaver
+   make build
+   ```
+4. **Start the daemon (WSL2 Terminal 1):**
+   ```bash
+   sudo ./bin/netweaverd
+   ```
+5. **Run the TUI or Web Dashboard (WSL2 Terminal 2):**
+   ```bash
+   ./bin/netweaver                 # Terminal UI
+   ./bin/netweaver web             # Web Dashboard -> open http://127.0.0.1:8088 in Windows browser
+   ```
+
+---
+
+### 3. macOS (via Linux VM)
+
+> **Note:** macOS (Darwin) does not support Linux cgroups v2, eBPF `cgroup_skb`, or `nftables`. Run NetWeaver inside a lightweight Linux VM such as **OrbStack** or **Lima**.
+
+1. **Install a Linux VM** (choose one via [Homebrew](https://brew.sh)):
+   ```bash
+   # Option A: OrbStack (recommended, fast port forwarding)
+   brew install orbstack
+   orb
+
+   # Option B: Lima
+   brew install lima
+   limactl start template://ubuntu
+   limactl shell ubuntu
+   ```
+2. **Inside the Linux VM, install dependencies:**
+   ```bash
+   sudo apt update
+   sudo apt install -y git make golang nftables iproute2 procps
+   ```
+3. **Clone & build inside the VM:**
+   ```bash
+   git clone https://github.com/ronakgupta03/netweaver.git
+   cd netweaver
+   make build
+   ```
+4. **Start the daemon (VM Terminal 1):**
+   ```bash
+   sudo ./bin/netweaverd
+   ```
+5. **Run the TUI or Web Dashboard (VM Terminal 2):**
+   ```bash
+   ./bin/netweaver                 # Terminal UI inside the VM
+   ./bin/netweaver web --addr 0.0.0.0:8088
+   ```
+   Open **`http://127.0.0.1:8088`** (or your VM's forwarded address) in Safari or Chrome on macOS.
+
+---
+
+## Build Details
 
 Requirements:
 - Linux kernel 6.x+ with cgroups v2 (`/sys/fs/cgroup`)
